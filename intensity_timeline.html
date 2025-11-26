@@ -386,6 +386,19 @@ window.updateSessionData = (payload) => {
   renderChart(payload);
 };
 
+window.tryConsumeFlutterPayload = function () {
+  if (window.flutterSwimPayload && window.flutterSwimPayload.segments) {
+    console.log('consuming flutter payload', window.flutterSwimPayload);
+    setLoading(false);
+    renderChart(window.flutterSwimPayload);
+    window.flutterSwimPayload = null;
+  } else {
+    window.requestAnimationFrame(window.tryConsumeFlutterPayload);
+  }
+};
+
+window.tryConsumeFlutterPayload();
+
     function formatTime(value) {
       const minutes = Math.floor(value / 60);
       const seconds = Math.round(value % 60)

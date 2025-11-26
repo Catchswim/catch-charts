@@ -7,22 +7,31 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     :root {
-      color-scheme: dark;
       font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background-color: #030712;
-      color: #f8fafc;
+      color: #004448;
     }
 
     body {
       margin: 0;
       padding: 1.5rem;
-      background: radial-gradient(circle at top, rgba(59, 130, 246, 0.25), transparent 45%),
-        #030712;
+      background: transparent;
     }
 
     .chart-wrapper {
       max-width: 960px;
       margin: 0 auto;
+    }
+
+    #loading {
+      margin-top: 1.5rem;
+      padding: 1rem 1.5rem;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(0, 68, 72, 0.2);
+      text-align: center;
+      font-size: 0.95rem;
+      color: #004448;
+      letter-spacing: 0.02em;
     }
 
     h1 {
@@ -73,7 +82,8 @@
     }
 
     .rest-block {
-      fill: rgba(148, 163, 184, 0.12);
+      fill: #CFC4DB;
+      opacity: 0.3;
     }
 
     .tooltip {
@@ -94,7 +104,7 @@
       gap: 1rem;
       margin-top: 1rem;
       font-size: 0.85rem;
-      color: #cbd5f5;
+      color: #004448;
     }
 
     .legend-dot {
@@ -109,16 +119,15 @@
 </head>
 <body>
   <div class="chart-wrapper">
-    <h1>Swim Intensity Timeline</h1>
-    <p>Combine pace and heart rate to see how the effort evolved through the set.</p>
     <div id="chart"></div>
     <div class="legend">
       <span><span class="legend-dot" style="background:#f97316"></span>Heart rate (bpm)</span>
       <span><span class="legend-dot" style="background:#38bdf8"></span>Pace (sec / 100 m)</span>
-      <span><span class="legend-dot" style="background:#94a3b8"></span>Rest periods</span>
+      <span><span class="legend-dot" style="background:#CFC4DB"></span>Rest periods</span>
     </div>
   </div>
   <div class="tooltip" id="tooltip"></div>
+  <div id="loading">Loading intensity timeline…</div>
 
   <script>
     const defaultSessionData = {
@@ -194,6 +203,14 @@ const tooltip = d3.select("#tooltip");
 const width = 940;
 const height = 340;
 const margin = { top: 20, right: 60, bottom: 40, left: 60 };
+const loadingEl = document.getElementById("loading");
+
+function setLoading(show) {
+  if (!loadingEl) return;
+  loadingEl.style.display = show ? "block" : "none";
+}
+
+setLoading(true);
 
 function renderChart(data) {
   const segments = [];
@@ -359,13 +376,13 @@ function renderChart(data) {
     .text(`Avg HR ${data.summary.avg_hr.toFixed(1)} bpm · Avg pace ${data.summary.avg_pace.toFixed(0)} s/100m`);
 }
 
-renderChart(defaultSessionData);
-
 window.updateSessionData = (payload) => {
   if (!payload || !payload.segments) {
+    setLoading(true);
     return;
   }
   console.log('incoming session data', payload);
+  setLoading(false);
   renderChart(payload);
 };
 

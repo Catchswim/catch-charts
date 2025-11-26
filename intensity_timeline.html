@@ -130,87 +130,60 @@
   <div id="loading">Loading intensity timeline…</div>
 
   <script>
-    const defaultSessionData = {
-      summary: {
-        avg_hr: 147.71,
-        max_hr: 158.921875,
-        avg_pace: 105.51,
-        avg_swolf: 33.06,
-        total_lengths: 80,
-        total_duration: 2653.94,
-        actual_distance: 2024.4047314700586,
-        avg_stroke_rate: null,
-        planned_distance: 1950,
-        moving_time_seconds: 2136.0046920776367,
-        total_energy_burned: 388.75
-      },
-      segments: [
-        { id: 1, rep_pace: 102.95069825649261, rep_avg_hr: 148.671875, rep_avg_swolf: 36.42551030160053, rep_description: "Warmup - Any stroke", rep_time_seconds: 411.80279302597046, rep_distance_meters: 400 },
-        { id: 2, rep_pace: null, rep_avg_hr: 144.34126984126982, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 35.29082190990448, rep_distance_meters: 0 },
-        { id: 3, rep_pace: 116.89970445632936, rep_avg_hr: 139.92857142857142, rep_avg_swolf: 33.529855847358704, rep_description: "Medium one-armed front crawl, focus on hand entry", rep_time_seconds: 29.224926114082336, rep_distance_meters: 25 },
-        { id: 4, rep_pace: null, rep_avg_hr: 138.88815789473685, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 27.66938591003418, rep_distance_meters: 0 },
-        { id: 5, rep_pace: 107.3200558358542, rep_avg_hr: 139.9758064516129, rep_avg_swolf: null, rep_description: "Medium one-armed front crawl, focus on hand entry", rep_time_seconds: 26.81074810028076, rep_distance_meters: 24.9820482215251 },
-        { id: 6, rep_pace: null, rep_avg_hr: 144.73809523809524, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 29.427697896957397, rep_distance_meters: 0 },
-        { id: 7, rep_pace: 120.21816444396973, rep_avg_hr: 139.61111111111111, rep_avg_swolf: 36.03664577007294, rep_description: "Medium one-armed front crawl, focus on hand entry", rep_time_seconds: 30.05454111099243, rep_distance_meters: 25 },
-        { id: 8, rep_pace: 5116.189017944324, rep_avg_hr: 143.63846153846154, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.34838593006134, rep_distance_meters: 0.5540918412246558 },
-        { id: 9, rep_pace: 113.39743566513062, rep_avg_hr: 132.65671641791045, rep_avg_swolf: null, rep_description: "Medium one-armed front crawl, focus on hand entry", rep_time_seconds: 27.676661014556885, rep_distance_meters: 24.406778559162234 },
-        { id: 10, rep_pace: null, rep_avg_hr: 141.2704918032787, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 29.495405912399292, rep_distance_meters: 0 },
-        { id: 11, rep_pace: 111.85562849044798, rep_avg_hr: 134.94852941176472, rep_avg_swolf: 32.148160457611084, rep_description: "Medium one-armed front crawl, focus on hand entry", rep_time_seconds: 27.963907122612, rep_distance_meters: 25 },
-        { id: 12, rep_pace: 303.3685566320801, rep_avg_hr: 144.1551724137931, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.99840998649597, rep_distance_meters: 9.558805404366518 },
-        { id: 13, rep_pace: 176.86455392837524, rep_avg_hr: 138.81060606060606, rep_avg_swolf: null, rep_description: "Medium one-armed front crawl, focus on hand entry", rep_time_seconds: 27.19309902191162, rep_distance_meters: 15.375098298624605 },
-        { id: 14, rep_pace: null, rep_avg_hr: 146.18103448275863, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 26.988932967185974, rep_distance_meters: 0 },
-        { id: 15, rep_pace: 97.92236828804016, rep_avg_hr: 139.55494505494508, rep_avg_swolf: 28.992435634613113, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 48.96118414402008, rep_distance_meters: 50 },
-        { id: 16, rep_pace: null, rep_avg_hr: 147.29166666666669, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 27.512363076210022, rep_distance_meters: 0 },
-        { id: 17, rep_pace: 97.58065390586853, rep_avg_hr: 145.41208791208794, rep_avg_swolf: 31.604164399612863, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 48.790326952934265, rep_distance_meters: 50 },
-        { id: 18, rep_pace: 122.6799698229168, rep_avg_hr: 149.07812500000003, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 26.451202154159546, rep_distance_meters: 21.561141718848404 },
-        { id: 19, rep_pace: 87.74105257339271, rep_avg_hr: 138.80624999999998, rep_avg_swolf: 29.61355512804784, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 29.723022937774658, rep_distance_meters: 33.87584496198317 },
-        { id: 20, rep_pace: 125.13454463766973, rep_avg_hr: 150.93548387096774, rep_avg_swolf: 30.57027023048472, rep_description: "Rest", rep_time_seconds: 24.288604021072388, rep_distance_meters: 19.40999113506239 },
-        { id: 21, rep_pace: 99.0465579032898, rep_avg_hr: 141.48275862068968, rep_avg_swolf: 27.829403758653424, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 49.5232789516449, rep_distance_meters: 50 },
-        { id: 22, rep_pace: null, rep_avg_hr: 154.04918032786887, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 26.578459978103638, rep_distance_meters: 0 },
-        { id: 23, rep_pace: 96.12073993682861, rep_avg_hr: 147.72222222222226, rep_avg_swolf: 31.589369879894612, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 48.06036996841431, rep_distance_meters: 50 },
-        { id: 24, rep_pace: null, rep_avg_hr: 150.796875, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 26.986667156219482, rep_distance_meters: 0 },
-        { id: 25, rep_pace: 98.68893146514893, rep_avg_hr: 139.2833333333333, rep_avg_swolf: 26.56478944897038, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 49.34446573257446, rep_distance_meters: 50 },
-        { id: 26, rep_pace: null, rep_avg_hr: 143.50076844956791, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.26162314414978, rep_distance_meters: 0 },
-        { id: 27, rep_pace: 109.26523184776306, rep_avg_hr: 138.35106382978725, rep_avg_swolf: 31.00258634648247, rep_description: "Medium front crawl - focus on hand entry", rep_time_seconds: 54.63261592388153, rep_distance_meters: 50 },
-        { id: 28, rep_pace: null, rep_avg_hr: 149.79508196721312, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 29.347131967544556, rep_distance_meters: 0 },
-        { id: 29, rep_pace: 96.88388895988464, rep_avg_hr: 146.79166666666669, rep_avg_swolf: 31.54929470383104, rep_description: "Medium front crawl", rep_time_seconds: 96.88388895988464, rep_distance_meters: 100 },
-        { id: 30, rep_pace: null, rep_avg_hr: 155.30468750000003, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.577499985694885, rep_distance_meters: 0 },
-        { id: 31, rep_pace: 97.43789601325989, rep_avg_hr: 156.0410447761194, rep_avg_swolf: 33.299152488128136, rep_description: "Medium front crawl", rep_time_seconds: 97.43789601325989, rep_distance_meters: 100 },
-        { id: 32, rep_pace: 116.14623246086641, rep_avg_hr: 158.921875, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.665971875190735, rep_distance_meters: 24.680931329261384 },
-        { id: 33, rep_pace: 99.509162068367, rep_avg_hr: 144.7642857142857, rep_avg_swolf: 32.742302830504066, rep_description: "Medium front crawl", rep_time_seconds: 99.509162068367, rep_distance_meters: 100 },
-        { id: 34, rep_pace: null, rep_avg_hr: 153.85833333333332, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 31.015044927597046, rep_distance_meters: 0 },
-        { id: 35, rep_pace: 107.82410001754761, rep_avg_hr: 147.9565217391304, rep_avg_swolf: 29.642830889090664, rep_description: "Medium front crawl pull + pull buoy - focus on nar", rep_time_seconds: 53.912050008773804, rep_distance_meters: 50 },
-        { id: 36, rep_pace: null, rep_avg_hr: 147.60317460317458, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 27.67383909225464, rep_distance_meters: 0 },
-        { id: 37, rep_pace: 99.75336384773254, rep_avg_hr: 142.98295454545453, rep_avg_swolf: 30.866997491962216, rep_description: "Medium front crawl pull + pull buoy - focus on nar", rep_time_seconds: 49.87668192386627, rep_distance_meters: 50 },
-        { id: 38, rep_pace: 115.55273151397705, rep_avg_hr: 143.7348484848485, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.888182878494263, rep_distance_meters: 25 },
-        { id: 39, rep_pace: 90.23083566295912, rep_avg_hr: 136.24285714285713, rep_avg_swolf: 29.744268998407797, rep_description: "Medium front crawl pull + pull buoy - focus on nar", rep_time_seconds: 27.92532503604889, rep_distance_meters: 30.948760288953615 },
-        { id: 40, rep_pace: 127.38343225292195, rep_avg_hr: 148.61718749999997, rep_avg_swolf: 30.502590311443463, rep_description: "Rest", rep_time_seconds: 24.268123030662537, rep_distance_meters: 19.051239711046385 },
-        { id: 41, rep_pace: 107.88256812095642, rep_avg_hr: 148.33684210526314, rep_avg_swolf: 31.663391123054073, rep_description: "Medium front crawl pull + pull buoy - focus on nar", rep_time_seconds: 53.94128406047821, rep_distance_meters: 50 },
-        { id: 42, rep_pace: null, rep_avg_hr: 139.46666666666667, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 29.947689056396484, rep_distance_meters: 0 },
-        { id: 43, rep_pace: 97.27526593208313, rep_avg_hr: 137.7267441860465, rep_avg_swolf: 30.695009991656764, rep_description: "Medium front crawl pull + pull buoy - focus on nar", rep_time_seconds: 48.637632966041565, rep_distance_meters: 50 },
-        { id: 44, rep_pace: null, rep_avg_hr: 145.8360655737705, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 28.56758201122284, rep_distance_meters: 0 },
-        { id: 45, rep_pace: 98.26195394992828, rep_avg_hr: 148.04166666666669, rep_avg_swolf: 32.351441065829945, rep_description: "Medium front crawl - focus on tightening your core", rep_time_seconds: 98.26195394992828, rep_distance_meters: 100 },
-        { id: 46, rep_pace: null, rep_avg_hr: 156.85606060606062, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 27.583613991737366, rep_distance_meters: 0 },
-        { id: 47, rep_pace: 101.4966150522232, rep_avg_hr: 152.34313725490196, rep_avg_swolf: 32.33037315661251, rep_description: "Medium front crawl - focus on tightening your core", rep_time_seconds: 101.4966150522232, rep_distance_meters: 100 },
-        { id: 48, rep_pace: null, rep_avg_hr: 157.28125, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 27.78841197490692, rep_distance_meters: 0 },
-        { id: 49, rep_pace: 102.16906797885895, rep_avg_hr: 154.01798561151082, rep_avg_swolf: 34.431169107853904, rep_description: "Medium front crawl - focus on tightening your core", rep_time_seconds: 102.16906797885895, rep_distance_meters: 100 },
-        { id: 50, rep_pace: null, rep_avg_hr: 157.53278688524588, rep_avg_swolf: null, rep_description: "Rest", rep_time_seconds: 29.224307894706726, rep_distance_meters: 0 },
-        { id: 51, rep_pace: 103.14115703105927, rep_avg_hr: 158.37, rep_avg_swolf: 35.95928376997052, rep_description: "Cooldown - Any stroke", rep_time_seconds: 206.28231406211853, rep_distance_meters: 200 }
-      ]
-    };
+    const tooltip = d3.select("#tooltip");
+    const width = 940;
+    const height = 340;
+    const margin = { top: 20, right: 60, bottom: 40, left: 60 };
+    const loadingEl = document.getElementById("loading");
+    const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
 
-const tooltip = d3.select("#tooltip");
-const width = 940;
-const height = 340;
-const margin = { top: 20, right: 60, bottom: 40, left: 60 };
-const loadingEl = document.getElementById("loading");
+    function setLoading(show) {
+      if (!loadingEl) return;
+      loadingEl.textContent = "Loading intensity timeline…";
+      loadingEl.style.display = show ? "block" : "none";
+    }
 
-function setLoading(show) {
-  if (!loadingEl) return;
-  loadingEl.style.display = show ? "block" : "none";
-}
+    setLoading(true);
 
-setLoading(true);
+    async function fetchSession(sessionId) {
+      const resp = await fetch(`${functionUrl}?sessionId=${encodeURIComponent(sessionId)}`);
+      if (!resp.ok) {
+        throw new Error(`Function returned ${resp.status}`);
+      }
+      const payload = await resp.json();
+      if (!payload?.sessionData) {
+        throw new Error("Session data missing");
+      }
+      return payload.sessionData;
+    }
+
+    function showError(message) {
+      if (loadingEl) {
+        loadingEl.textContent = message;
+      }
+      setLoading(true);
+    }
+
+    function parseSessionId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("sessionId");
+    }
+
+    async function hydrateChart() {
+      const sessionId = parseSessionId();
+      if (!sessionId) {
+        showError("Missing session id");
+        return;
+      }
+      try {
+        const payload = await fetchSession(sessionId);
+        setLoading(false);
+        renderChart(payload);
+      } catch (error) {
+        console.error(error);
+        showError("Unable to load run data");
+      }
+    }
 
 function renderChart(data) {
   const segments = [];
@@ -376,28 +349,7 @@ function renderChart(data) {
     .text(`Avg HR ${data.summary.avg_hr.toFixed(1)} bpm · Avg pace ${data.summary.avg_pace.toFixed(0)} s/100m`);
 }
 
-window.updateSessionData = (payload) => {
-  if (!payload || !payload.segments) {
-    setLoading(true);
-    return;
-  }
-  console.log('incoming session data', payload);
-  setLoading(false);
-  renderChart(payload);
-};
-
-window.tryConsumeFlutterPayload = function () {
-  if (window.flutterSwimPayload && window.flutterSwimPayload.segments) {
-    console.log('consuming flutter payload', window.flutterSwimPayload);
-    setLoading(false);
-    renderChart(window.flutterSwimPayload);
-    window.flutterSwimPayload = null;
-  } else {
-    window.requestAnimationFrame(window.tryConsumeFlutterPayload);
-  }
-};
-
-window.tryConsumeFlutterPayload();
+hydrateChart();
 
     function formatTime(value) {
       const minutes = Math.floor(value / 60);

@@ -107,7 +107,7 @@
     }
 
     .hr-line {
-      stroke: #f97316;
+      stroke: #ef4444;
     }
 
     .pace-line {
@@ -147,11 +147,11 @@
     }
 
     .legend-dot.intensity-gradient {
-      background: linear-gradient(90deg, #d8f3dc, #95d5b2, #52b788, #2d6a4f);
+      background: linear-gradient(90deg, #e0f2fe, #7dd3fc, #f87171, #b91c1c);
     }
 
     .work-block {
-      opacity: 0.25;
+      opacity: 0.22;
     }
 
     .rest-block {
@@ -191,7 +191,7 @@
   <div class="chart-wrapper">
     <div id="chart"></div>
     <div class="legend">
-      <span><span class="legend-dot" style="background:#f97316"></span>Heart rate (bpm)</span>
+      <span><span class="legend-dot" style="background:#ef4444"></span>Heart rate (bpm)</span>
       <span><span class="legend-dot" style="background:#38bdf8"></span>Pace (sec / 100 m)</span>
       <span><span class="legend-dot" style="background:#CFC4DB"></span>Rest periods</span>
       <span><span class="legend-dot intensity-gradient"></span>Swim intensity</span>
@@ -210,10 +210,10 @@
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
-      easy: { label: "Easy", color: "#d8f3dc" },
-      medium: { label: "Medium", color: "#95d5b2" },
-      fast: { label: "Fast", color: "#52b788" },
-      max: { label: "Max", color: "#2d6a4f" },
+      easy: { label: "Easy", color: "#e0f2fe" },
+      medium: { label: "Medium", color: "#7dd3fc" },
+      fast: { label: "Fast", color: "#f87171" },
+      max: { label: "Max", color: "#b91c1c" },
     };
 
     function setLoading(show) {
@@ -313,17 +313,42 @@
 
       const totalDuration = cumulative || data.summary?.total_duration || 0;
       const heartRateSeries = buildHeartRateSeries(providerDetail, segments, totalDuration);
-      const hrSeries = heartRateSeries.length
+      let hrSeries = heartRateSeries.length
         ? heartRateSeries
-        : segments.filter((seg) => seg.rep_avg_hr != null).map((seg) => ({
-            time: seg.midTime,
-            value: seg.rep_avg_hr,
-          }));
+        : segments
+            .filter((seg) => seg.rep_avg_hr != null)
+            .map((seg) => ({
+              time: seg.midTime,
+              value: seg.rep_avg_hr,
+            }));
+
+      if (hrSeries.length) {
+        const first = hrSeries[0];
+        const last = hrSeries[hrSeries.length - 1];
+        if (first.time > 0) {
+          hrSeries = [{ time: 0, value: first.value }, ...hrSeries];
+        }
+        const sessionEnd = totalDuration || segments[segments.length - 1]?.endTime || last.time;
+        if (sessionEnd && last.time < sessionEnd) {
+          hrSeries = [...hrSeries, { time: sessionEnd, value: last.value }];
+        }
+      }
+
+      const paceSeries = segments
+        .filter((seg) => !seg.isRest && seg.rep_pace != null)
+        .map((seg) => ({
+          time: seg.midTime ?? seg.startTime,
+          value: seg.rep_pace,
+          label: seg.label,
+          rep_avg_hr: seg.rep_avg_hr,
+          duration: seg.endTime - seg.startTime,
+          intensity: seg.intensity,
+        }));
+
       const hrMaxTime = hrSeries.length ? d3.max(hrSeries, (d) => d.time) : 0;
       const domainMax = Math.max(totalDuration, hrMaxTime ?? 0);
 
-      const swimSegments = segments.filter((seg) => !seg.isRest && seg.rep_pace != null);
-      const paceExtent = d3.extent(swimSegments, (d) => d.rep_pace);
+      const paceExtent = d3.extent(paceSeries, (d) => d.value);
       const hrExtent = d3.extent(hrSeries, (d) => d.value);
 
       const paceScale = d3
@@ -411,10 +436,10 @@
 
       const paceLine = d3
         .line()
-        .defined((d) => !d.isRest && d.rep_pace != null)
-        .curve(d3.curveCatmullRom.alpha(0.4))
-        .x((d) => xScale(d.midTime ?? d.startTime))
-        .y((d) => paceScale(d.rep_pace));
+        .defined((d) => d.value != null)
+        .curve(d3.curveCatmullRom.alpha(0.5))
+        .x((d) => xScale(d.time))
+        .y((d) => paceScale(d.value));
 
       const hrLine = d3
         .line()
@@ -425,7 +450,7 @@
 
       svg
         .append("path")
-        .datum(segments)
+        .datum(paceSeries)
         .attr("class", "line pace-line")
         .attr("d", paceLine);
 
@@ -437,24 +462,24 @@
 
       svg
         .selectAll(".pace-point")
-        .data(swimSegments)
+        .data(paceSeries)
         .enter()
         .append("circle")
         .attr("class", "pace-point")
-        .attr("cx", (d) => xScale(d.midTime ?? d.startTime))
-        .attr("cy", (d) => paceScale(d.rep_pace))
-        .attr("r", 4)
+        .attr("cx", (d) => xScale(d.time))
+        .attr("cy", (d) => paceScale(d.value))
+        .attr("r", 3.5)
         .attr("fill", "#38bdf8")
         .attr("stroke", "#0f172a")
-        .attr("stroke-width", 1.5)
+        .attr("stroke-width", 1.2)
         .on("pointerenter", (event, datum) => {
           tooltip
             .style("display", "block")
             .html(`
               <strong>${datum.label}</strong><br/>
-              Pace: ${formatPace(datum.rep_pace)}<br/>
+              Pace: ${formatPace(datum.value)}<br/>
               Avg HR: ${datum.rep_avg_hr ? datum.rep_avg_hr.toFixed(0) : "n/a"} bpm<br/>
-              Duration: ${formatTime(datum.endTime - datum.startTime)}<br/>
+              Duration: ${formatTime(datum.duration)}<br/>
               Intensity: ${(intensityPalette[datum.intensity] ?? intensityPalette.medium).label}
             `);
         })
@@ -659,11 +684,11 @@
           <div class="value">${hrLabel}</div>
         </div>
         <div>
-          <div class="label">${segment?.isRest ? "State" : "Pace"}</div>
+          <div class="label">${segment?.isRest ? "Intensity" : "Pace"}</div>
           <div class="value">${stateLabel}</div>
         </div>
         <div>
-          <div class="label">Segment</div>
+          <div class="label">Rep</div>
           <div class="value">${segmentLabel}</div>
         </div>
         <div>

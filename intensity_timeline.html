@@ -145,8 +145,14 @@
 
     setLoading(true);
 
-    async function fetchSession(sessionId) {
-      const resp = await fetch(`${functionUrl}?sessionId=${encodeURIComponent(sessionId)}`);
+    async function fetchSession(sessionId, token) {
+      const headers = new Headers({ accept: "application/json" });
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      const resp = await fetch(`${functionUrl}?sessionId=${encodeURIComponent(sessionId)}`, {
+        headers,
+      });
       if (!resp.ok) {
         throw new Error(`Function returned ${resp.status}`);
       }
@@ -175,14 +181,23 @@
         showError("Missing session id");
         return;
       }
+      const token = parseToken();
       try {
-        const payload = await fetchSession(sessionId);
+        const payload = await fetchSession(sessionId, token);
         setLoading(false);
         renderChart(payload);
+        if (token) {
+          window.history.replaceState({}, "", window.location.pathname + window.location.search.replace(/&?token=[^&]*/, ""));
+        }
       } catch (error) {
         console.error(error);
         showError("Unable to load run data");
       }
+    }
+
+    function parseToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("token");
     }
 
 function renderChart(data) {

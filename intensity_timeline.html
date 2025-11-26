@@ -60,7 +60,7 @@
     }
 
     .focus-readout {
-      margin-top: 0;
+      margin-top: 20px;
       padding: 12px;
       border-radius: 8px;
       border: 1px solid #CFC4DB;
@@ -107,7 +107,7 @@
 
     #chart {
       position: relative;
-      margin-top: 0;
+      margin-top: 20px;
       width: 100%;
     }
 
@@ -157,7 +157,7 @@
     .legend {
       display: flex;
       gap: 1rem;
-      margin-top: 0;
+      margin-top: 20px;
       font-size: 12px;
       font-weight: 400;
       color: #004448;
@@ -192,8 +192,8 @@
     }
 
     .focus-line {
-      stroke: rgba(0, 68, 72, 0.35);
-      stroke-width: 1.5px;
+      stroke: rgba(0, 68, 72, 0.7);
+      stroke-width: 2.5px;
       stroke-dasharray: 4 3;
       display: none;
     }
@@ -490,7 +490,7 @@
         .attr("width", (d) => Math.max(xScale(d.endTime) - xScale(d.startTime), 1))
         .attr("height", height)
         .attr("fill", intensityPalette.rest.color)
-        .attr("opacity", 0.4);
+        .attr("opacity", 0.2);
 
       const hrLine = d3
         .line()

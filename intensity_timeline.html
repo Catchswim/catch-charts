@@ -38,7 +38,6 @@
 
     .chart-wrapper {
       width: 100%;
-      min-height: 100vh;
       max-width: none;
       margin: 0;
       box-sizing: border-box;
@@ -61,7 +60,7 @@
     }
 
     .focus-readout {
-      margin-top: 14px;
+      margin-top: 0;
       padding: 12px;
       border-radius: 8px;
       border: 1px solid #CFC4DB;
@@ -109,8 +108,6 @@
     #chart {
       position: relative;
       margin-top: 0;
-      flex: 1;
-      min-height: 600px;
       width: 100%;
     }
 
@@ -127,7 +124,7 @@
 
     .axis text {
       fill: #004448;
-      font-size: 14px;
+      font-size: 18px;
       font-family: inherit;
     }
 
@@ -160,7 +157,7 @@
     .legend {
       display: flex;
       gap: 1rem;
-      margin-top: 1rem;
+      margin-top: 0;
       font-size: 12px;
       font-weight: 400;
       color: #004448;
@@ -236,7 +233,7 @@
     const width = 940;
     // Calculate height dynamically - will be recalculated in renderChart based on actual container
     let height = Math.max(600, window.innerHeight * 0.8);
-    const margin = { top: 0, right: 0, bottom: 0, left: 0 };
+    const margin = { top: 0, right: 60, bottom: 0, left: 60 };
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
@@ -324,9 +321,10 @@
       // Recalculate height based on actual container or viewport
       const chartContainer = document.getElementById("chart");
       if (chartContainer && chartContainer.offsetHeight > 0) {
-        height = Math.max(600, chartContainer.offsetHeight - margin.top - margin.bottom);
+        height = chartContainer.offsetHeight - margin.top - margin.bottom;
       } else {
-        height = Math.max(600, window.innerHeight * 0.8);
+        // Use a reasonable default if container height not available
+        height = Math.max(400, window.innerHeight * 0.6);
       }
 
       const providerDetail = data.provider_workout_detail ?? null;
@@ -449,7 +447,7 @@
         .call(
           d3
             .axisBottom(xScale)
-            .ticks(Math.min(20, Math.ceil(totalDuration / 60)))
+            .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
             .tickFormat((value) => formatTime(value))
         )
         .call((g) => {
@@ -501,26 +499,26 @@
         .x((d) => xScale(d.time))
         .y((d) => hrScale(d.value));
 
-      // Draw pace as bars
-      // Calculate bar width based on average time spacing or use a reasonable default
-      const paceDataPoints = paceSeries.filter((d) => d.value != null);
-      let barWidth = 4;
-      if (paceDataPoints.length > 1) {
-        const avgSpacing = paceDataPoints.slice(1).reduce((sum, d, i) => {
-          return sum + (d.time - paceDataPoints[i].time);
-        }, 0) / (paceDataPoints.length - 1);
-        barWidth = Math.max(2, Math.min(8, xScale(avgSpacing) * 0.8));
-      }
+      // Draw pace as bars - full width of each segment
+      const paceSegments = segments.filter((seg) => !seg.isRest && seg.rep_pace != null);
       svg
         .selectAll(".pace-bar")
-        .data(paceDataPoints)
+        .data(paceSegments)
         .enter()
         .append("rect")
         .attr("class", "pace-bar")
-        .attr("x", (d) => xScale(d.time) - barWidth / 2)
-        .attr("y", (d) => paceScale(d.value))
-        .attr("width", barWidth)
-        .attr("height", (d) => height - paceScale(d.value))
+        .attr("x", (d) => {
+          const xStart = xScale(d.startTime);
+          return isNaN(xStart) ? 0 : xStart;
+        })
+        .attr("y", (d) => paceScale(d.rep_pace))
+        .attr("width", (d) => {
+          const xStart = xScale(d.startTime);
+          const xEnd = xScale(d.endTime);
+          const barWidth = xEnd - xStart;
+          return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
+        })
+        .attr("height", (d) => height - paceScale(d.rep_pace))
         .attr("fill", "#91BDCD")
         .attr("opacity", 0.8);
 

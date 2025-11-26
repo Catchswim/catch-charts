@@ -13,26 +13,38 @@
       color: #004448;
     }
 
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       margin: 0;
-      padding: 1.5rem;
-      background: transparent;
+      padding: 0;
+      background: #fff;
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #004448;
     }
 
     .chart-wrapper {
-      max-width: 960px;
-      margin: 0 auto;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      margin: 0;
+      box-sizing: border-box;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     #loading {
-      margin-top: 1.5rem;
-      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
       border-radius: 0.75rem;
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(0, 68, 72, 0.2);
+      background: #ffffff;
+      border: 1px solid #CFC4DB;
       text-align: center;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: #004448;
       letter-spacing: 0.02em;
       font-family: inherit;
@@ -80,29 +92,32 @@
 
     p {
       margin-top: 0;
-      color: #94a3b8;
+      color: #004448;
       font-size: 0.95rem;
     }
 
     #chart {
       position: relative;
-      margin-top: 1rem;
+      margin-top: 0;
+      flex: 1;
+      height: calc(100vh - 160px);
+      min-height: 640px;
     }
 
     svg {
       width: 100%;
-      height: auto;
+      height: 100%;
       overflow: visible;
     }
 
     .axis line,
     .axis path {
-      stroke: #334155;
+      stroke: none;
     }
 
     .axis text {
-      fill: #cbd5f5;
-      font-size: 12px;
+      fill: #004448;
+      font-size: 8px;
       font-family: inherit;
     }
 
@@ -113,25 +128,26 @@
     }
 
     .hr-line {
-      stroke: #ef4444;
+      stroke: #9333ea;
     }
 
     .pace-line {
-      stroke: #38bdf8;
+      stroke: #004448;
     }
 
     .tooltip {
       position: absolute;
       padding: 0.65rem 0.85rem;
       border-radius: 0.55rem;
-      background: rgba(2, 6, 23, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: #ffffff;
+      border: 1px solid #CFC4DB;
       pointer-events: none;
       font-size: 0.85rem;
       line-height: 1.4;
       display: none;
-      box-shadow: 0 10px 40px rgba(2, 6, 23, 0.65);
+      box-shadow: 0 10px 30px rgba(0, 68, 72, 0.15);
       font-family: inherit;
+      color: #004448;
     }
 
     .legend {
@@ -154,7 +170,7 @@
     }
 
     .legend-dot.intensity-gradient {
-      background: linear-gradient(90deg, #e0f2fe, #7dd3fc, #f87171, #b91c1c);
+      background: linear-gradient(90deg, #2563eb, #facc15, #22c55e, #b91c1c);
     }
 
     .work-block {
@@ -162,8 +178,8 @@
     }
 
     .rest-block {
-      fill: #22c55e;
-      opacity: 0.25;
+      fill: #CFC4DB;
+      opacity: 0.4;
     }
 
     .interaction-overlay {
@@ -186,11 +202,11 @@
     }
 
     .focus-dot.hr {
-      fill: #f97316;
+      fill: #9333ea;
     }
 
     .focus-dot.pace {
-      fill: #38bdf8;
+      fill: #004448;
     }
   </style>
 </head>
@@ -198,9 +214,9 @@
   <div class="chart-wrapper">
     <div id="chart"></div>
     <div class="legend">
-      <span><span class="legend-dot" style="background:#ef4444"></span>Heart rate (bpm)</span>
-      <span><span class="legend-dot" style="background:#38bdf8"></span>Pace (sec / 100 m)</span>
-      <span><span class="legend-dot" style="background:#22c55e"></span>Rest periods</span>
+      <span><span class="legend-dot" style="background:#9333ea"></span>Heart rate (bpm)</span>
+      <span><span class="legend-dot" style="background:#004448"></span>Pace (per 100 m)</span>
+      <span><span class="legend-dot" style="background:#CFC4DB"></span>Rest periods</span>
       <span><span class="legend-dot intensity-gradient"></span>Swim intensity</span>
     </div>
   </div>
@@ -212,15 +228,15 @@
     const tooltip = d3.select("#tooltip");
     const readoutEl = document.getElementById("focus-readout");
     const width = 940;
-    const height = 680;
-    const margin = { top: 30, right: 80, bottom: 50, left: 70 };
+    const height = 900;
+    const margin = { top: 0, right: 0, bottom: 0, left: 0 };
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
-      rest: { label: "Rest", color: "#22c55e" },
-      easy: { label: "Easy", color: "#e0f2fe" },
-      medium: { label: "Medium", color: "#7dd3fc" },
-      fast: { label: "Fast", color: "#f87171" },
+      rest: { label: "Rest", color: "#CFC4DB" },
+      easy: { label: "Easy", color: "#2563eb" },
+      medium: { label: "Medium", color: "#facc15" },
+      fast: { label: "Fast", color: "#22c55e" },
       max: { label: "Max", color: "#b91c1c" },
     };
 
@@ -419,14 +435,19 @@
             .ticks(8)
             .tickFormat((value) => formatTime(value))
         )
-        .call((g) => g.select(".domain").attr("stroke", "#94a3b8"));
+        .call((g) => {
+          g.select(".domain").attr("stroke", "none");
+          g.selectAll("line").attr("stroke", "none");
+        });
 
       svg
         .append("g")
         .attr("class", "axis y-axis")
         .call(d3.axisLeft(hrScale).ticks(6))
-        .call((g) => g.select(".domain").attr("stroke", "#94a3b8"))
-        .call((g) => g.selectAll("line").attr("stroke", "#1e293b"));
+        .call((g) => {
+          g.select(".domain").attr("stroke", "none");
+          g.selectAll("line").attr("stroke", "none");
+        });
 
       svg
         .append("g")
@@ -434,12 +455,14 @@
         .attr("transform", `translate(${width},0)`)
         .call(
           d3
-        .axisRight(paceScale)
-        .ticks(6)
-        .tickFormat((value) => formatPace(value))
+            .axisRight(paceScale)
+            .ticks(6)
+            .tickFormat((value) => formatPace(value, false))
         )
-        .call((g) => g.select(".domain").attr("stroke", "#94a3b8"))
-        .call((g) => g.selectAll("line").attr("stroke", "#1e293b"));
+        .call((g) => {
+          g.select(".domain").attr("stroke", "none");
+          g.selectAll("line").attr("stroke", "none");
+        });
 
       // Shade work intervals by inferred intensity.
       svg
@@ -463,7 +486,9 @@
         .attr("x", (d) => xScale(d.startTime))
         .attr("y", 0)
         .attr("width", (d) => Math.max(xScale(d.endTime) - xScale(d.startTime), 1))
-        .attr("height", height);
+        .attr("height", height)
+        .attr("fill", intensityPalette.rest.color)
+        .attr("opacity", 0.4);
 
       const paceLine = d3
         .line()
@@ -500,9 +525,9 @@
         .attr("cx", (d) => xScale(d.time))
         .attr("cy", (d) => paceScale(d.value))
         .attr("r", 3.5)
-        .attr("fill", "#38bdf8")
-        .attr("stroke", "#0f172a")
-        .attr("stroke-width", 1.2)
+        .attr("fill", "#004448")
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 1.1)
         .on("pointerenter", (event, datum) => {
           tooltip
             .style("display", "block")
@@ -551,7 +576,8 @@
         const time = xScale.invert(clampedX);
         const nearestHr = findNearestSample(hrSeries, time);
         const segment = segments.find((seg) => time >= seg.startTime && time <= seg.endTime);
-        const paceValue = segment && !segment.isRest && segment.rep_pace != null ? segment.rep_pace : null;
+        const nearestPace = paceSeries.length ? findNearestSample(paceSeries, time) : null;
+        const paceValue = nearestPace?.value ?? null;
 
         focusLine
           .attr("x1", clampedX)
@@ -567,9 +593,9 @@
           focusHrDot.style("display", "none");
         }
 
-        if (paceValue != null) {
+        if (paceValue != null && nearestPace) {
           focusPaceDot
-            .attr("cx", xScale(segment.midTime ?? segment.startTime))
+            .attr("cx", xScale(nearestPace.time))
             .attr("cy", paceScale(paceValue))
             .style("display", "block");
         } else {
@@ -597,7 +623,7 @@
       return `${minutes}:${seconds}`;
     }
 
-    function formatPace(value) {
+    function formatPace(value, includeUnit = true) {
       if (value == null || Number.isNaN(value)) {
         return "n/a";
       }
@@ -606,7 +632,8 @@
       const secondsPart = Math.round(seconds % 60)
         .toString()
         .padStart(2, "0");
-      return `${minutesPart}m ${secondsPart}s`;
+      const formatted = `${minutesPart}m ${secondsPart}s`;
+      return includeUnit ? `${formatted} / 100m` : formatted;
     }
 
     function inferIntensity(description = "", isRest = false) {
@@ -629,6 +656,26 @@
     function buildHeartRateSeries(providerDetail, segments, sessionDuration) {
       if (!providerDetail) {
         return [];
+      }
+      const bridgeSamples = providerDetail.bridgeDetail?.heartRate?.samples;
+      if (Array.isArray(bridgeSamples) && bridgeSamples.length) {
+        const reference = new Date(
+          providerDetail.bridgeDetail?.startDate ||
+            providerDetail.startDate ||
+            bridgeSamples[0]?.timestamp ||
+            bridgeSamples[0]?.startDate ||
+            Date.now()
+        ).getTime();
+        return bridgeSamples
+          .filter((sample) => sample?.value != null)
+          .map((sample) => ({
+            time: Math.max(
+              0,
+              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
+            ),
+            value: sample.value,
+          }))
+          .sort((a, b) => a.time - b.time);
       }
 
       if (providerDetail.heartRate?.samples?.length) {
@@ -717,10 +764,12 @@
           <div class="label">Heart rate</div>
           <div class="value">${hrLabel}</div>
         </div>
+        ${!segment?.isRest ? `
         <div>
-          <div class="label">${segment?.isRest ? "Intensity" : "Pace"}</div>
+          <div class="label">Pace</div>
           <div class="value">${stateLabel}</div>
         </div>
+        ` : ''}
         <div>
           <div class="label">Rep</div>
           <div class="value">${segmentLabel}</div>

@@ -31,7 +31,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: transparent;
+      background: #F6FDFF;
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #004448;
     }
@@ -212,6 +212,14 @@
 
     .focus-dot.pace {
       fill: #91BDCD;
+    }
+
+    .focus-handle {
+      display: none;
+      fill: #004448;
+      stroke: #ffffff;
+      stroke-width: 2px;
+      r: 6;
     }
   </style>
 </head>
@@ -429,6 +437,8 @@
         .domain([0, domainMax || totalDuration || 1])
         .range([0, width])
         .nice();
+      const baseXScale = xScale.copy();
+      let currentXScale = baseXScale;
 
       const chart = d3.select("#chart");
       chart.selectAll("*").remove();
@@ -441,13 +451,13 @@
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      svg
+      const xAxis = svg
         .append("g")
         .attr("class", "axis x-axis")
         .attr("transform", `translate(0,${height})`)
         .call(
           d3
-            .axisBottom(xScale)
+            .axisBottom(currentXScale)
             .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
             .tickFormat((value) => formatTime(value))
         )
@@ -480,42 +490,35 @@
           g.selectAll("line").attr("stroke", "none");
         });
 
-      svg
+      const restBlocks = svg
         .selectAll(".rest-block")
         .data(segments.filter((d) => d.isRest))
         .enter()
         .append("rect")
         .attr("class", "rest-block")
-        .attr("x", (d) => xScale(d.startTime))
+        .attr("x", (d) => currentXScale(d.startTime))
         .attr("y", 0)
-        .attr("width", (d) => Math.max(xScale(d.endTime) - xScale(d.startTime), 1))
+        .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1))
         .attr("height", height)
         .attr("fill", intensityPalette.rest.color)
         .attr("opacity", 0.2);
 
-      const hrLine = d3
-        .line()
-        .defined((d) => d.value != null)
-        .curve(d3.curveCatmullRom.alpha(0.35))
-        .x((d) => xScale(d.time))
-        .y((d) => hrScale(d.value));
-
       // Draw pace as bars - full width of each segment
       const paceSegments = segments.filter((seg) => !seg.isRest && seg.rep_pace != null);
-      svg
+      const paceBars = svg
         .selectAll(".pace-bar")
         .data(paceSegments)
         .enter()
         .append("rect")
         .attr("class", "pace-bar")
         .attr("x", (d) => {
-          const xStart = xScale(d.startTime);
+          const xStart = currentXScale(d.startTime);
           return isNaN(xStart) ? 0 : xStart;
         })
         .attr("y", (d) => paceScale(d.rep_pace))
         .attr("width", (d) => {
-          const xStart = xScale(d.startTime);
-          const xEnd = xScale(d.endTime);
+          const xStart = currentXScale(d.startTime);
+          const xEnd = currentXScale(d.endTime);
           const barWidth = xEnd - xStart;
           return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
         })
@@ -523,19 +526,27 @@
         .attr("fill", "#91BDCD")
         .attr("opacity", 0.8);
 
-      svg
+      const hrPath = svg
         .append("path")
         .datum(hrSeries)
         .attr("class", "line hr-line")
-        .attr("d", hrLine);
+        .attr(
+          "d",
+          d3
+            .line()
+            .defined((d) => d.value != null)
+            .curve(d3.curveCatmullRom.alpha(0.35))
+            .x((d) => currentXScale(d.time))
+            .y((d) => hrScale(d.value))(hrSeries)
+        );
 
-      svg
+      const pacePoints = svg
         .selectAll(".pace-point")
         .data(paceSeries)
         .enter()
         .append("circle")
         .attr("class", "pace-point")
-        .attr("cx", (d) => xScale(d.time))
+        .attr("cx", (d) => currentXScale(d.time))
         .attr("cy", (d) => paceScale(d.value))
         .attr("r", 3.5)
         .attr("fill", "#91BDCD")
@@ -567,31 +578,69 @@
         .attr("y2", height);
       const focusHrDot = focusGroup.append("circle").attr("class", "focus-dot hr");
       const focusPaceDot = focusGroup.append("circle").attr("class", "focus-dot pace");
+      const focusHandle = focusGroup
+        .append("circle")
+        .attr("class", "focus-handle")
+        .attr("cy", -8);
 
       let activePointerId = null;
+      let lastFocusTime = null;
+      const activeTouchIds = new Set();
+      let multiTouchActive = false;
 
       const overlay = svg
         .append("rect")
         .attr("class", "interaction-overlay")
         .attr("width", width)
         .attr("height", height)
-        .on("pointerdown", (event) => {
+        .on("pointerdown.focus", (event) => {
+          if (event.pointerType === "touch") {
+            activeTouchIds.add(event.pointerId);
+            multiTouchActive = activeTouchIds.size > 1;
+            if (multiTouchActive) {
+              return;
+            }
+          }
           activePointerId = event.pointerId;
           overlay.node().setPointerCapture(activePointerId);
           handleFocus(event);
         })
-        .on("pointermove", (event) => {
-          const isActiveDrag = (event.buttons & 1) === 1 || event.pointerType === "touch";
+        .on("pointermove.focus", (event) => {
+          const isTouch = event.pointerType === "touch";
+          const isActiveDrag = (event.buttons & 1) === 1 || isTouch;
+          if (isTouch) {
+            if (!activeTouchIds.has(event.pointerId) || multiTouchActive) {
+              return;
+            }
+          }
           if (event.pointerId === activePointerId && isActiveDrag) {
             handleFocus(event);
           }
         })
-        .on("pointerup pointercancel pointerleave", (event) => {
+        .on("pointerup.focus pointercancel.focus pointerleave.focus", (event) => {
+          if (event.pointerType === "touch") {
+            activeTouchIds.delete(event.pointerId);
+            multiTouchActive = activeTouchIds.size > 1;
+          }
           if (event.pointerId === activePointerId) {
             overlay.node().releasePointerCapture(activePointerId);
             activePointerId = null;
           }
         });
+
+      const zoom = d3
+        .zoom()
+        .scaleExtent([1, 10])
+        .translateExtent([
+          [0, 0],
+          [width, height],
+        ])
+        .on("zoom", (event) => {
+          const newScale = event.transform.rescaleX(baseXScale);
+          applyXScale(newScale);
+        });
+
+      overlay.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
 
       function handleFocus(evt, explicitTime = null) {
         if (evt?.preventDefault) {
@@ -599,10 +648,10 @@
         }
         const pointerX =
           explicitTime != null
-            ? xScale(explicitTime)
+            ? currentXScale(explicitTime)
             : Math.max(0, Math.min(width, d3.pointer(evt, overlay.node())[0] ?? 0));
         const clampedX = Math.max(0, Math.min(width, pointerX));
-        const time = explicitTime != null ? explicitTime : xScale.invert(clampedX);
+        const time = explicitTime != null ? explicitTime : currentXScale.invert(clampedX);
         const nearestHr = findNearestSample(hrSeries, time);
         const segment = segments.find((seg) => time >= seg.startTime && time <= seg.endTime);
         const nearestPace = paceSeries.length ? findNearestSample(paceSeries, time) : null;
@@ -612,10 +661,13 @@
           .attr("x1", clampedX)
           .attr("x2", clampedX)
           .style("display", "block");
+        focusHandle
+          .attr("cx", clampedX)
+          .style("display", "block");
 
         if (nearestHr) {
           focusHrDot
-            .attr("cx", xScale(nearestHr.time))
+            .attr("cx", currentXScale(nearestHr.time))
             .attr("cy", hrScale(nearestHr.value))
             .style("display", "block");
         } else {
@@ -624,19 +676,67 @@
 
         if (paceValue != null && nearestPace) {
           focusPaceDot
-            .attr("cx", xScale(nearestPace.time))
+            .attr("cx", currentXScale(nearestPace.time))
             .attr("cy", paceScale(paceValue))
             .style("display", "block");
         } else {
           focusPaceDot.style("display", "none");
         }
 
+        lastFocusTime = time;
         updateReadout({
           time,
           heartRate: nearestHr?.value ?? null,
           segment,
           pace: paceValue,
         });
+      }
+
+      function applyXScale(scale) {
+        currentXScale = scale;
+        xAxis
+          .call(
+            d3
+              .axisBottom(currentXScale)
+              .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
+              .tickFormat((value) => formatTime(value))
+          )
+          .call((g) => {
+            g.select(".domain").attr("stroke", "none");
+            g.selectAll("line").attr("stroke", "none");
+          });
+
+        restBlocks
+          .attr("x", (d) => currentXScale(d.startTime))
+          .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1));
+
+        paceBars
+          .attr("x", (d) => {
+            const xStart = currentXScale(d.startTime);
+            return isNaN(xStart) ? 0 : xStart;
+          })
+          .attr("width", (d) => {
+            const xStart = currentXScale(d.startTime);
+            const xEnd = currentXScale(d.endTime);
+            const barWidth = xEnd - xStart;
+            return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
+          });
+
+        pacePoints.attr("cx", (d) => currentXScale(d.time));
+
+        hrPath.attr(
+          "d",
+          d3
+            .line()
+            .defined((d) => d.value != null)
+            .curve(d3.curveCatmullRom.alpha(0.35))
+            .x((d) => currentXScale(d.time))
+            .y((d) => hrScale(d.value))(hrSeries)
+        );
+
+        if (lastFocusTime != null) {
+          handleFocus(null, lastFocusTime);
+        }
       }
 
       const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;

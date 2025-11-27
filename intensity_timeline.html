@@ -189,6 +189,7 @@
     .interaction-overlay {
       fill: transparent;
       cursor: crosshair;
+      touch-action: none;
     }
 
     .focus-line {
@@ -567,55 +568,41 @@
       const focusHrDot = focusGroup.append("circle").attr("class", "focus-dot hr");
       const focusPaceDot = focusGroup.append("circle").attr("class", "focus-dot pace");
 
-      let touchStartY = null;
-      let isScrolling = false;
-      
+      let activePointerId = null;
+
       const overlay = svg
         .append("rect")
         .attr("class", "interaction-overlay")
         .attr("width", width)
         .attr("height", height)
-        .on("touchstart", (event) => {
-          if (event.touches && event.touches.length > 0) {
-            touchStartY = event.touches[0].clientY;
-            isScrolling = false;
-          }
-        })
-        .on("touchmove", (event) => {
-          if (event.touches && event.touches.length > 0 && touchStartY !== null) {
-            const touchY = event.touches[0].clientY;
-            const deltaY = Math.abs(touchY - touchStartY);
-            if (deltaY > 10) {
-              isScrolling = true;
-            }
-          }
-        })
-        .on("touchend", (event) => {
-          if (!isScrolling && touchStartY !== null) {
-            handleFocus(event);
-          }
-          touchStartY = null;
-          isScrolling = false;
-        })
         .on("pointerdown", (event) => {
-          if (event.pointerType !== "touch") {
-            handleFocus(event);
-          }
+          activePointerId = event.pointerId;
+          overlay.node().setPointerCapture(activePointerId);
+          handleFocus(event);
         })
         .on("pointermove", (event) => {
-          if (event.pointerType !== "touch" && (event.buttons === 1)) {
+          const isActiveDrag = (event.buttons & 1) === 1 || event.pointerType === "touch";
+          if (event.pointerId === activePointerId && isActiveDrag) {
             handleFocus(event);
+          }
+        })
+        .on("pointerup pointercancel pointerleave", (event) => {
+          if (event.pointerId === activePointerId) {
+            overlay.node().releasePointerCapture(activePointerId);
+            activePointerId = null;
           }
         });
 
-      function handleFocus(evt) {
-        // Only prevent default for mouse/pointer events, not touch scrolls
-        if (evt?.preventDefault && evt.pointerType !== "touch") {
+      function handleFocus(evt, explicitTime = null) {
+        if (evt?.preventDefault) {
           evt.preventDefault();
         }
-        const pointer = d3.pointer(evt, overlay.node());
-        const clampedX = Math.max(0, Math.min(width, pointer[0] ?? 0));
-        const time = xScale.invert(clampedX);
+        const pointerX =
+          explicitTime != null
+            ? xScale(explicitTime)
+            : Math.max(0, Math.min(width, d3.pointer(evt, overlay.node())[0] ?? 0));
+        const clampedX = Math.max(0, Math.min(width, pointerX));
+        const time = explicitTime != null ? explicitTime : xScale.invert(clampedX);
         const nearestHr = findNearestSample(hrSeries, time);
         const segment = segments.find((seg) => time >= seg.startTime && time <= seg.endTime);
         const nearestPace = paceSeries.length ? findNearestSample(paceSeries, time) : null;
@@ -651,6 +638,9 @@
           pace: paceValue,
         });
       }
+
+      const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
+      handleFocus(null, defaultFocusTime);
 
     }
 

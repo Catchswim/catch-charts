@@ -414,8 +414,9 @@
       const domainMax = Math.max(totalDuration, hrMaxTime ?? 0);
 
       const paceExtent = d3.extent(paceSeries, (d) => d.value);
-      const pacePadding = 8;
+      const pacePadding = 12;
       const hrExtent = d3.extent(hrSeries, (d) => d.value);
+      const hrPadding = 12;
 
       const paceScale = d3
         .scaleLinear()
@@ -428,7 +429,10 @@
 
       const hrScale = d3
         .scaleLinear()
-        .domain([Math.min(hrExtent[0] ?? 110, 90), Math.max(hrExtent[1] ?? 160, 180)])
+        .domain([
+          Math.min(hrExtent[0] ?? 110, 90) - hrPadding,
+          Math.max(hrExtent[1] ?? 160, 180) + hrPadding,
+        ])
         .range([height, 0])
         .nice();
 
@@ -628,16 +632,26 @@
           }
         });
 
+      let isUpdatingTransform = false;
       const zoom = d3
         .zoom()
         .scaleExtent([1, 10])
         .translateExtent([
-          [0, 0],
-          [width, height],
+          [0, -Infinity],
+          [width, Infinity],
         ])
         .on("zoom", (event) => {
-          const newScale = event.transform.rescaleX(baseXScale);
+          if (isUpdatingTransform) return;
+          
+          // Use only the scale component, ignore translate to prevent horizontal shifting
+          const scaleOnlyTransform = d3.zoomIdentity.scale(event.transform.k);
+          const newScale = scaleOnlyTransform.rescaleX(baseXScale);
           applyXScale(newScale);
+          
+          // Reset the zoom transform to remove any translate component
+          isUpdatingTransform = true;
+          overlay.call(zoom.transform, scaleOnlyTransform);
+          isUpdatingTransform = false;
         });
 
       overlay.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);

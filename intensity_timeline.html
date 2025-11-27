@@ -109,7 +109,6 @@
       position: relative;
       margin-top: 20px;
       width: 100%;
-      min-height: 900px;
     }
 
     svg {
@@ -241,9 +240,9 @@
     const tooltip = d3.select("#tooltip");
     const readoutEl = document.getElementById("focus-readout");
     const width = 940;
-    const defaultChartHeight = 900;
+    const minViewportHeight = 520;
     // Calculate height dynamically - will be recalculated in renderChart based on actual container
-    let height = Math.max(defaultChartHeight, window.innerHeight * 0.85);
+    let height = Math.max(minViewportHeight, window.innerHeight * 0.75);
     const margin = { top: 0, right: 60, bottom: 0, left: 60 };
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
@@ -332,10 +331,10 @@
       // Recalculate height based on actual container or viewport
       const chartContainer = document.getElementById("chart");
       if (chartContainer && chartContainer.offsetHeight > 0) {
-        height = Math.max(defaultChartHeight, chartContainer.offsetHeight - margin.top - margin.bottom);
+        height = Math.max(minViewportHeight, chartContainer.offsetHeight - margin.top - margin.bottom);
       } else {
         // Use a reasonable default if container height not available
-        height = Math.max(defaultChartHeight, window.innerHeight * 0.8);
+        height = Math.max(minViewportHeight, window.innerHeight * 0.75);
       }
 
       const providerDetail = data.provider_workout_detail ?? null;

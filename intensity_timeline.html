@@ -241,7 +241,7 @@
     const readoutEl = document.getElementById("focus-readout");
     const width = 940;
     // Calculate height dynamically - will be recalculated in renderChart based on actual container
-    let height = Math.max(600, window.innerHeight * 0.8);
+    let height = Math.max(520, window.innerHeight * 0.75);
     const margin = { top: 0, right: 60, bottom: 0, left: 60 };
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
@@ -330,10 +330,10 @@
       // Recalculate height based on actual container or viewport
       const chartContainer = document.getElementById("chart");
       if (chartContainer && chartContainer.offsetHeight > 0) {
-        height = chartContainer.offsetHeight - margin.top - margin.bottom;
+        height = Math.max(520, chartContainer.offsetHeight - margin.top - margin.bottom);
       } else {
         // Use a reasonable default if container height not available
-        height = Math.max(400, window.innerHeight * 0.6);
+        height = Math.max(520, window.innerHeight * 0.7);
       }
 
       const providerDetail = data.provider_workout_detail ?? null;
@@ -414,21 +414,41 @@
       const domainMax = Math.max(totalDuration, hrMaxTime ?? 0);
 
       const paceExtent = d3.extent(paceSeries, (d) => d.value);
-      const pacePadding = 8;
       const hrExtent = d3.extent(hrSeries, (d) => d.value);
+
+      const resolveExtent = (extent, fallbackMin, fallbackMax) => {
+        const [min, max] = extent;
+        const hasMin = Number.isFinite(min);
+        const hasMax = Number.isFinite(max);
+        if (hasMin && hasMax) {
+          return [min, max];
+        }
+        return [fallbackMin, fallbackMax];
+      };
+
+      const [paceMinRaw, paceMaxRaw] = resolveExtent(paceExtent, 80, 150);
+      const [hrMinRaw, hrMaxRaw] = resolveExtent(hrExtent, 110, 160);
+
+      const pad = (min, max, fallbackPadding = 8) => {
+        if (!Number.isFinite(min) || !Number.isFinite(max)) {
+          return fallbackPadding;
+        }
+        const span = Math.max(1, max - min);
+        return Math.max(fallbackPadding * 0.5, span * 0.08);
+      };
+
+      const pacePadding = pad(paceMinRaw, paceMaxRaw, 6);
+      const hrPadding = pad(hrMinRaw, hrMaxRaw, 6);
 
       const paceScale = d3
         .scaleLinear()
-        .domain([
-          (paceExtent[1] ?? 150) + pacePadding,
-          Math.max(0, (paceExtent[0] ?? 80) - pacePadding),
-        ])
+        .domain([paceMaxRaw + pacePadding, Math.max(0, paceMinRaw - pacePadding)])
         .range([height, 0])
         .nice();
 
       const hrScale = d3
         .scaleLinear()
-        .domain([Math.min(hrExtent[0] ?? 110, 90), Math.max(hrExtent[1] ?? 160, 180)])
+        .domain([Math.max(40, hrMinRaw - hrPadding), hrMaxRaw + hrPadding])
         .range([height, 0])
         .nice();
 

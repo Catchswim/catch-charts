@@ -240,9 +240,9 @@
     const tooltip = d3.select("#tooltip");
     const readoutEl = document.getElementById("focus-readout");
     const width = 940;
-    const minViewportHeight = 520;
+    const preferredChartHeight = 820;
     // Calculate height dynamically - will be recalculated in renderChart based on actual container
-    let height = Math.max(minViewportHeight, window.innerHeight * 0.75);
+    let height = resolveChartHeight();
     const margin = { top: 0, right: 60, bottom: 0, left: 60 };
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
@@ -330,11 +330,9 @@
       
       // Recalculate height based on actual container or viewport
       const chartContainer = document.getElementById("chart");
-      if (chartContainer && chartContainer.offsetHeight > 0) {
-        height = Math.max(minViewportHeight, chartContainer.offsetHeight - margin.top - margin.bottom);
-      } else {
-        // Use a reasonable default if container height not available
-        height = Math.max(minViewportHeight, window.innerHeight * 0.75);
+      height = resolveChartHeight(chartContainer);
+      if (chartContainer) {
+        chartContainer.style.minHeight = `${height + margin.top + margin.bottom}px`;
       }
 
       const providerDetail = data.provider_workout_detail ?? null;
@@ -766,6 +764,16 @@
     }
 
     hydrateChart();
+
+    function resolveChartHeight(chartContainer) {
+      const containerHeight =
+        chartContainer && chartContainer.offsetHeight > 0
+          ? chartContainer.offsetHeight - margin.top - margin.bottom
+          : null;
+      const fallbackHeight = Math.max(preferredChartHeight, window.innerHeight * 0.85);
+      const targetHeight = containerHeight != null ? Math.max(containerHeight, preferredChartHeight) : fallbackHeight;
+      return targetHeight;
+    }
 
     function formatTime(value) {
       const safeValue = Number.isFinite(value) ? value : 0;

@@ -806,6 +806,10 @@
           <div class="label">Heart rate</div>
           <div class="value">${hrLabel}</div>
         </div>
+        <div>
+          <div class="label">Distance</div>
+          <div class="value">${segment?.rep_distance_meters != null ? `${segment.rep_distance_meters.toFixed(0)} m` : "—"}</div>
+        </div>
         ${!segment?.isRest ? `
         <div>
           <div class="label">Pace</div>

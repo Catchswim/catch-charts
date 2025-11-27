@@ -636,22 +636,22 @@
       const zoom = d3
         .zoom()
         .scaleExtent([1, 10])
-        .translateExtent([
-          [0, -Infinity],
-          [width, Infinity],
-        ])
         .on("zoom", (event) => {
           if (isUpdatingTransform) return;
           
-          // Use only the scale component, ignore translate to prevent horizontal shifting
-          const scaleOnlyTransform = d3.zoomIdentity.scale(event.transform.k);
-          const newScale = scaleOnlyTransform.rescaleX(baseXScale);
-          applyXScale(newScale);
-          
-          // Reset the zoom transform to remove any translate component
-          isUpdatingTransform = true;
-          overlay.call(zoom.transform, scaleOnlyTransform);
-          isUpdatingTransform = false;
+          // When fully zoomed out (scale = 1), reset translate to prevent shifting
+          if (event.transform.k <= 1.001) {
+            const resetTransform = d3.zoomIdentity;
+            isUpdatingTransform = true;
+            overlay.call(zoom.transform, resetTransform);
+            isUpdatingTransform = false;
+            const newScale = resetTransform.rescaleX(baseXScale);
+            applyXScale(newScale);
+          } else {
+            // Normal zoom/pan behavior when zoomed in
+            const newScale = event.transform.rescaleX(baseXScale);
+            applyXScale(newScale);
+          }
         });
 
       overlay.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);

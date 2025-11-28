@@ -458,13 +458,18 @@
       const canvasWidth = width + margin.left + margin.right;
       const canvasHeight = height + margin.top + margin.bottom;
 
+      chart
+        .style("position", "relative")
+        .style("height", `${canvasHeight}px`)
+        .style("width", "100%");
+
       const canvas = chart
         .append("canvas")
         .attr("class", "chart-canvas")
         .attr("width", canvasWidth * pixelRatio)
         .attr("height", canvasHeight * pixelRatio)
-        .style("width", `${canvasWidth}px`)
-        .style("height", `${canvasHeight}px`)
+        .style("width", "100%")
+        .style("height", "100%")
         .style("top", "0px")
         .style("left", "0px");
 
@@ -477,7 +482,9 @@
         .attr("viewBox", `0 0 ${canvasWidth} ${canvasHeight}`)
         .style("position", "absolute")
         .style("top", "0px")
-        .style("left", "0px");
+        .style("left", "0px")
+        .style("width", "100%")
+        .style("height", "100%");
 
       const svg = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -676,14 +683,23 @@
         if (!context) {
           return;
         }
+
+        const backingWidth = canvasWidth * pixelRatio;
+        const backingHeight = canvasHeight * pixelRatio;
+
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, backingWidth, backingHeight);
+        context.restore();
+
+        context.save();
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        context.clearRect(0, 0, canvasWidth, canvasHeight);
         context.translate(margin.left, margin.top);
 
         // Draw pace bars
         context.globalAlpha = 0.8;
         context.fillStyle = "#91BDCD";
-        (segments.filter((seg) => !seg.isRest && seg.rep_pace != null) || []).forEach((seg) => {
+        paceSegments.forEach((seg) => {
           const xStart = scale(seg.startTime);
           const xEnd = scale(seg.endTime);
           const barWidth = Math.max(xEnd - xStart, 1);
@@ -731,6 +747,8 @@
           context.fill();
           context.stroke();
         });
+
+        context.restore();
       }
 
       function handleFocus(evt, explicitTime = null) {

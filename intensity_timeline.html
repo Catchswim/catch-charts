@@ -46,6 +46,18 @@
       flex-direction: column;
     }
 
+    .chart-frame {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #CFC4DB;
+      background: #ffffff;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     #loading {
       margin-top: 1rem;
       padding: 0.75rem 1rem;
@@ -64,7 +76,7 @@
       padding: 12px;
       border-radius: 8px;
       border: 1px solid #CFC4DB;
-      background: transparent;
+      background: #ffffff;
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
@@ -107,7 +119,6 @@
 
     #chart {
       position: relative;
-      margin-top: 20px;
       width: 100%;
     }
 
@@ -225,11 +236,13 @@
 </head>
 <body>
   <div class="chart-wrapper">
-    <div id="chart"></div>
-    <div class="legend">
-      <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
-      <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-      <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+    <div class="chart-frame">
+      <div id="chart"></div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+        <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+        <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+      </div>
     </div>
   </div>
   <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>

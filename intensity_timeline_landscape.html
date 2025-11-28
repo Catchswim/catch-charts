@@ -18,10 +18,11 @@
     body {
       margin: 0;
       padding: 0;
-      height: 100%;
+      min-height: 100%;
       background: #0b1e22;
       color: #004448;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
       touch-action: pan-y pinch-zoom;
     }
 
@@ -29,18 +30,21 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      padding: 16px 20px;
     }
 
     .page-wrapper {
       position: relative;
       width: 100%;
       max-width: 1600px;
-      padding: 32px 40px 48px;
+      padding: 24px 28px 32px;
       box-sizing: border-box;
       background: #f6fdff;
       border-radius: 20px;
       box-shadow: 0 10px 60px rgba(0, 34, 36, 0.25);
+      min-height: calc(100vh - 80px);
+      display: flex;
+      flex-direction: column;
     }
 
     .title-block {
@@ -69,11 +73,25 @@
       position: relative;
       display: flex;
       flex-direction: column;
+      flex: 1;
+      gap: 18px;
+      min-height: 0;
+    }
+
+    .chart-area {
+      flex: 1;
+      position: relative;
+      min-height: 360px;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(0, 68, 72, 0.05);
     }
 
     #chart {
-      position: relative;
+      position: absolute;
+      inset: 0;
       width: 100%;
+      height: 100%;
     }
 
     svg {
@@ -122,7 +140,7 @@
     .legend {
       display: flex;
       gap: 1.25rem;
-      margin-top: 20px;
+      margin-top: 0;
       font-size: 12px;
       font-weight: 400;
       color: #004448;
@@ -186,7 +204,7 @@
       border: 1px solid #CFC4DB;
       background: transparent;
       display: flex;
-      gap: 18px;
+      gap: 22px;
       flex-wrap: wrap;
       font-size: 13px;
     }
@@ -254,7 +272,9 @@
       <p class="subtitle">Landscape mode for full-session analysis</p>
     </div>
     <div class="chart-wrapper">
-      <div id="chart"></div>
+      <div class="chart-area">
+        <div id="chart"></div>
+      </div>
       <div class="legend">
         <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
         <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
@@ -281,6 +301,8 @@
       fast: { label: "Fast", color: "#22c55e" },
       max: { label: "Max", color: "#b91c1c" },
     };
+
+    let latestSessionData = null;
 
     async function tryLockOrientation() {
       if (window.screen?.orientation?.lock) {
@@ -357,7 +379,15 @@
       try {
         const payload = await fetchSession(sessionId, token);
         setLoading(false);
+        latestSessionData = payload;
         renderChart(payload);
+        if (!window.__timelineLandscapeResizeAttached) {
+          window.__timelineLandscapeResizeAttached = true;
+          window.addEventListener("resize", () => {
+            if (!latestSessionData) return;
+            window.requestAnimationFrame(() => renderChart(latestSessionData));
+          });
+        }
         if (token) {
           window.history.replaceState({}, "", window.location.pathname + window.location.search.replace(/&?token=[^&]*/, ""));
         }
@@ -371,15 +401,20 @@
       resetReadout();
 
       const chartContainer = document.getElementById("chart");
+      const chartArea = chartContainer?.parentElement;
+      const chartRect = chartArea?.getBoundingClientRect();
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      height = Math.max(520, viewportHeight * 0.78) - margin.top - margin.bottom;
-      let computedWidth = Math.max(1100, viewportWidth * 0.85) - margin.left - margin.right;
-      if (chartContainer && chartContainer.clientWidth > 0) {
-        computedWidth = Math.max(computedWidth, chartContainer.clientWidth - margin.left - margin.right);
-      }
-      width = computedWidth;
+      const availableWidth = chartRect && chartRect.width > 0
+        ? chartRect.width
+        : Math.max(1100, viewportWidth * 0.82);
+      const availableHeight = chartRect && chartRect.height > 0
+        ? chartRect.height
+        : Math.max(380, viewportHeight * 0.75);
+
+      width = Math.max(800, availableWidth - margin.left - margin.right);
+      height = Math.max(320, availableHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;
       const segments = [];

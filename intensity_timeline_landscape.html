@@ -53,10 +53,11 @@
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
+      height: calc(100% - 40px);
     }
 
     .chart-column {
-      flex: 1;
+      flex: 0 0 80%;
       min-width: 0;
       display: flex;
       flex-direction: column;
@@ -70,6 +71,18 @@
       border-radius: 14px;
       background: #ffffff;
       border: 1px solid #CFC4DB;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .chart-area-inner {
+      position: relative;
+      flex: 1;
+      border-radius: 8px;
       overflow: visible;
     }
 
@@ -183,17 +196,25 @@
     }
 
     .focus-readout {
-      width: 260px;
-      max-width: 30%;
+      flex: 1;
+      max-width: 20%;
+      min-width: 220px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
       background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px 16px;
       font-size: 13px;
       overflow-y: auto;
+    }
+
+    .focus-readout > div {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
     }
 
     .focus-readout .label {
@@ -257,12 +278,14 @@
     <div class="chart-wrapper">
       <div class="chart-column">
         <div class="chart-area">
-          <div id="chart"></div>
-        </div>
-        <div class="legend">
-          <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
-          <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-          <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+          <div class="chart-area-inner">
+            <div id="chart"></div>
+          </div>
+          <div class="legend">
+            <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+            <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+            <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+          </div>
         </div>
       </div>
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
@@ -395,7 +418,7 @@
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const wrapperHeight = chartWrapper?.clientHeight ?? viewportHeight;
+      const wrapperHeight = (chartWrapper?.clientHeight ?? viewportHeight) * 0.95;
       const columnGap = chartColumn
         ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
         : 0;
@@ -1073,30 +1096,41 @@
       const stateLabel = segment?.isRest ? intensityLabel : pace != null ? formatPace(pace) : "—";
       const hrLabel = heartRate != null ? `${Math.round(heartRate)} bpm` : "—";
       const segmentLabel = segment?.rep_description ?? "—";
-      readoutEl.innerHTML = `
+      const items = [
+        {
+          label: "Rep",
+          value: segmentLabel,
+        },
+        {
+          label: "Distance",
+          value: segment?.rep_distance_meters != null ? `${segment.rep_distance_meters.toFixed(0)} m` : "—",
+        },
+        !segment?.isRest
+          ? {
+              label: "Pace",
+              value: stateLabel,
+            }
+          : null,
+        {
+          label: "Heart rate",
+          value: hrLabel,
+        },
+        {
+          label: "Time",
+          value: formatTime(time),
+        },
+      ].filter(Boolean);
+
+      readoutEl.innerHTML = items
+        .map(
+          (item) => `
         <div>
-          <div class="label">Time</div>
-          <div class="value">${formatTime(time)}</div>
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
         </div>
-        <div>
-          <div class="label">Heart rate</div>
-          <div class="value">${hrLabel}</div>
-        </div>
-        <div>
-          <div class="label">Distance</div>
-          <div class="value">${segment?.rep_distance_meters != null ? `${segment.rep_distance_meters.toFixed(0)} m` : "—"}</div>
-        </div>
-        ${!segment?.isRest ? `
-        <div>
-          <div class="label">Pace</div>
-          <div class="value">${stateLabel}</div>
-        </div>
-        ` : ''}
-        <div>
-          <div class="label">Rep</div>
-          <div class="value">${segmentLabel}</div>
-        </div>
-      `;
+      `
+        )
+        .join("");
     }
   </script>
 </body>

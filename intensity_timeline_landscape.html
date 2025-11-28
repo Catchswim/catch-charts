@@ -373,20 +373,39 @@
       resetReadout();
 
       const chartContainer = document.getElementById("chart");
+      const chartWrapperEl = document.querySelector(".chart-wrapper");
+      const legendEl = document.querySelector(".legend");
+      const focusReadoutEl = document.getElementById("focus-readout");
       const chartArea = chartContainer?.parentElement;
       const chartRect = chartArea?.getBoundingClientRect();
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
+      const wrapperRect = chartWrapperEl?.getBoundingClientRect();
+      const rowGap = chartWrapperEl
+        ? parseFloat(getComputedStyle(chartWrapperEl).rowGap || getComputedStyle(chartWrapperEl).gridRowGap || "0")
+        : 0;
+      const legendHeight = legendEl?.offsetHeight ?? 0;
+      const readoutHeight = focusReadoutEl?.offsetHeight ?? 0;
+      const reservedHeight = legendHeight + readoutHeight + rowGap * 2;
+
       const availableWidth = chartRect && chartRect.width > 0
         ? chartRect.width
         : Math.max(1100, viewportWidth * 0.82);
-      const availableHeight = chartRect && chartRect.height > 0
+
+      let availableHeight = wrapperRect && wrapperRect.height > 0
+        ? wrapperRect.height - reservedHeight
+        : chartRect && chartRect.height > 0
         ? chartRect.height
         : Math.max(380, viewportHeight * 0.75);
 
+      availableHeight = Math.max(320, availableHeight);
+      if (chartArea) {
+        chartArea.style.height = `${availableHeight}px`;
+      }
+
       width = Math.max(800, availableWidth - margin.left - margin.right);
-      height = Math.max(320, availableHeight - margin.top - margin.bottom);
+      height = Math.max(240, availableHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;
       const segments = [];
@@ -513,8 +532,8 @@
         .attr("id", clipId)
         .attr("clipPathUnits", "userSpaceOnUse")
         .append("rect")
-        .attr("x", margin.left)
-        .attr("y", margin.top)
+        .attr("x", 0)
+        .attr("y", 0)
         .attr("width", width)
         .attr("height", height);
 

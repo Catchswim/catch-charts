@@ -343,6 +343,12 @@
       loadingEl.style.display = show ? "block" : "none";
     }
 
+    function hideLoading() {
+      if (loadingEl && loadingEl.parentNode) {
+        loadingEl.parentNode.removeChild(loadingEl);
+      }
+    }
+
     function resetReadout(message = "Tap anywhere to find out more.") {
       if (!readoutEl) return;
       readoutEl.classList.add("empty");
@@ -400,6 +406,7 @@
         setLoading(false);
         latestSessionData = payload;
         renderChart(payload);
+        hideLoading();
         if (!window.__timelineLandscapeResizeAttached) {
           window.__timelineLandscapeResizeAttached = true;
           window.addEventListener("resize", () => {

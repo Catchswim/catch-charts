@@ -596,41 +596,91 @@
         .append("rect")
         .attr("class", "interaction-overlay")
         .attr("width", width)
-        .attr("height", height)
-        .on("pointerdown.focus", (event) => {
-          if (event.pointerType === "touch") {
-            activeTouchIds.add(event.pointerId);
-            multiTouchActive = activeTouchIds.size > 1;
-            if (multiTouchActive) {
-              return;
+        .attr("height", height);
+
+      const supportsPointerEvents = window.PointerEvent != null;
+
+      if (supportsPointerEvents) {
+        overlay
+          .on("pointerdown.focus", (event) => {
+            if (event.pointerType === "touch") {
+              activeTouchIds.add(event.pointerId);
+              multiTouchActive = activeTouchIds.size > 1;
+              if (multiTouchActive) {
+                return;
+              }
             }
-          }
-          activePointerId = event.pointerId;
-          overlay.node().setPointerCapture(activePointerId);
-          handleFocus(event);
-        })
-        .on("pointermove.focus", (event) => {
-          const isTouch = event.pointerType === "touch";
-          const isActiveDrag = (event.buttons & 1) === 1 || isTouch;
-          if (isTouch) {
-            if (!activeTouchIds.has(event.pointerId) || multiTouchActive) {
-              return;
+            activePointerId = event.pointerId;
+            const node = overlay.node();
+            if (node && node.setPointerCapture) {
+              node.setPointerCapture(activePointerId);
             }
-          }
-          if (event.pointerId === activePointerId && isActiveDrag) {
             handleFocus(event);
-          }
-        })
-        .on("pointerup.focus pointercancel.focus pointerleave.focus", (event) => {
-          if (event.pointerType === "touch") {
-            activeTouchIds.delete(event.pointerId);
-            multiTouchActive = activeTouchIds.size > 1;
-          }
-          if (event.pointerId === activePointerId) {
-            overlay.node().releasePointerCapture(activePointerId);
+          })
+          .on("pointermove.focus", (event) => {
+            const isTouch = event.pointerType === "touch";
+            const isActiveDrag = (event.buttons & 1) === 1 || isTouch;
+            if (isTouch) {
+              if (!activeTouchIds.has(event.pointerId) || multiTouchActive) {
+                return;
+              }
+            }
+            if (event.pointerId === activePointerId && isActiveDrag) {
+              handleFocus(event);
+            }
+          })
+          .on("pointerup.focus pointercancel.focus pointerleave.focus", (event) => {
+            if (event.pointerType === "touch") {
+              activeTouchIds.delete(event.pointerId);
+              multiTouchActive = activeTouchIds.size > 1;
+            }
+            if (event.pointerId === activePointerId) {
+              const node = overlay.node();
+              if (node && node.releasePointerCapture) {
+                node.releasePointerCapture(activePointerId);
+              }
+              activePointerId = null;
+            }
+          });
+      } else {
+        overlay
+          .on("touchstart.focus", (event) => {
+            if (event.touches && event.touches.length > 1) {
+              multiTouchActive = true;
+              activePointerId = null;
+              return;
+            }
+            multiTouchActive = false;
+            activePointerId = "touch";
+            handleFocus(event);
+          })
+          .on("touchmove.focus", (event) => {
+            if (multiTouchActive || activePointerId !== "touch") {
+              return;
+            }
+            handleFocus(event);
+          })
+          .on("touchend.focus touchcancel.focus", () => {
             activePointerId = null;
-          }
-        });
+            multiTouchActive = false;
+          })
+          .on("mousedown.focus", (event) => {
+            activePointerId = "mouse";
+            handleFocus(event);
+          })
+          .on("mousemove.focus", (event) => {
+            const isActiveDrag = event.buttons == null ? event.which === 1 : (event.buttons & 1) === 1;
+            if (activePointerId !== "mouse" || !isActiveDrag) {
+              return;
+            }
+            handleFocus(event);
+          })
+          .on("mouseup.focus mouseleave.focus", () => {
+            if (activePointerId === "mouse") {
+              activePointerId = null;
+            }
+          });
+      }
 
       let isUpdatingTransform = false;
       const zoom = d3

@@ -53,11 +53,11 @@
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: calc(100% - 40px);
+      height: calc(95vh - 40px);
     }
 
     .chart-column {
-      flex: 0 0 80%;
+      flex: 1 1 0%;
       min-width: 0;
       display: flex;
       flex-direction: column;
@@ -196,9 +196,9 @@
     }
 
     .focus-readout {
-      flex: 1;
-      max-width: 20%;
-      min-width: 220px;
+      flex: 0 0 240px;
+      max-width: 28%;
+      min-width: 200px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
@@ -418,7 +418,7 @@
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const wrapperHeight = (chartWrapper?.clientHeight ?? viewportHeight) * 0.95;
+      const wrapperHeight = Math.max(200, (chartWrapper?.clientHeight ?? viewportHeight * 0.95) - 40);
       const columnGap = chartColumn
         ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
         : 0;
@@ -438,8 +438,9 @@
       }
 
       const chartWidth = chartArea?.clientWidth ?? Math.max(1100, viewportWidth * 0.7);
+      const availablePlotWidth = Math.max(600, chartWidth - margin.left - margin.right);
 
-      width = Math.max(720, chartWidth - margin.left - margin.right);
+      width = availablePlotWidth;
       height = Math.max(200, chartAreaHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;

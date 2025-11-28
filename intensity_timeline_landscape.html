@@ -249,15 +249,7 @@
     }
 
     #loading {
-      margin-top: 1.25rem;
-      padding: 0.85rem 1rem;
-      border-radius: 0.75rem;
-      background: transparent;
-      border: 1px solid #CFC4DB;
-      text-align: center;
-      font-size: 0.95rem;
-      color: #004448;
-      letter-spacing: 0.02em;
+      display: none;
     }
 
     .rotate-overlay {
@@ -302,7 +294,6 @@
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     </div>
     <div class="tooltip" id="tooltip"></div>
-    <div id="loading">Loading…</div>
   </div>
 
   <script>
@@ -311,7 +302,6 @@
     let width = 1400;
     let height = 720;
     const margin = { top: 8, right: 85, bottom: 16, left: 60 };
-    const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
       rest: { label: "Rest", color: "#E5E5E5" },
@@ -337,25 +327,12 @@
       tryLockOrientation();
     });
 
-    function setLoading(show) {
-      if (!loadingEl) return;
-      loadingEl.textContent = "Loading…";
-      loadingEl.style.display = show ? "block" : "none";
-    }
-
-    function hideLoading() {
-      if (loadingEl && loadingEl.parentNode) {
-        loadingEl.parentNode.removeChild(loadingEl);
-      }
-    }
-
     function resetReadout(message = "Tap anywhere to find out more.") {
       if (!readoutEl) return;
       readoutEl.classList.add("empty");
       readoutEl.textContent = message;
     }
-
-    setLoading(true);
+    resetReadout();
     resetReadout();
 
     async function fetchSession(sessionId, token) {
@@ -374,14 +351,6 @@
         throw new Error("Session data missing");
       }
       return payload.sessionData;
-    }
-
-    function showError(message) {
-      if (loadingEl) {
-        loadingEl.textContent = message;
-      }
-      resetReadout(message);
-      setLoading(true);
     }
 
     function parseSessionId() {
@@ -403,10 +372,8 @@
       const token = parseToken();
       try {
         const payload = await fetchSession(sessionId, token);
-        setLoading(false);
         latestSessionData = payload;
         renderChart(payload);
-        hideLoading();
         if (!window.__timelineLandscapeResizeAttached) {
           window.__timelineLandscapeResizeAttached = true;
           window.addEventListener("resize", () => {
@@ -419,7 +386,7 @@
         }
       } catch (error) {
         console.error(error);
-        showError("Unable to load swim data");
+        resetReadout("Unable to load swim data");
       }
     }
 

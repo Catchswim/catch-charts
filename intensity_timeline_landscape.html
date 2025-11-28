@@ -685,7 +685,6 @@
         .attr("y1", 0)
         .attr("y2", height);
       const focusHrDot = focusGroup.append("circle").attr("class", "focus-dot hr");
-      const focusPaceDot = focusGroup.append("circle").attr("class", "focus-dot pace");
       const focusHandle = focusGroup
         .append("circle")
         .attr("class", "focus-handle")
@@ -869,14 +868,7 @@
           focusHrDot.style("display", "none");
         }
 
-        if (paceValue != null && nearestPace) {
-          focusPaceDot
-            .attr("cx", currentXScale(nearestPace.time))
-            .attr("cy", paceScale(paceValue))
-            .style("display", "block");
-        } else {
-          focusPaceDot.style("display", "none");
-        }
+        // Pace focus dot removed
 
         lastFocusTime = time;
         updateReadout({
@@ -916,8 +908,6 @@
             const barWidth = xEnd - xStart;
             return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
           });
-
-        pacePoints.attr("cx", (d) => currentXScale(d.time));
 
         hrPath.attr(
           "d",

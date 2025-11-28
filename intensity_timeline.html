@@ -603,16 +603,19 @@
       if (supportsPointerEvents) {
         overlay
           .on("pointerdown.focus", (event) => {
+            const node = overlay.node();
             if (event.pointerType === "touch") {
               activeTouchIds.add(event.pointerId);
               multiTouchActive = activeTouchIds.size > 1;
               if (multiTouchActive) {
+                if (node && node.releasePointerCapture) {
+                  node.releasePointerCapture(event.pointerId);
+                }
                 return;
               }
             }
             activePointerId = event.pointerId;
-            const node = overlay.node();
-            if (node && node.setPointerCapture) {
+            if (node && node.setPointerCapture && event.pointerType !== "touch") {
               node.setPointerCapture(activePointerId);
             }
             handleFocus(event);
@@ -636,7 +639,7 @@
             }
             if (event.pointerId === activePointerId) {
               const node = overlay.node();
-              if (node && node.releasePointerCapture) {
+              if (node && node.releasePointerCapture && event.pointerType !== "touch") {
                 node.releasePointerCapture(activePointerId);
               }
               activePointerId = null;
@@ -683,6 +686,8 @@
       }
 
       let suppressZoomUpdate = false;
+      let focusUpdateFrame = null;
+      let pendingFocusState = null;
       const zoom = d3
         .zoom()
         .scaleExtent([1, 10])
@@ -720,27 +725,44 @@
       overlay.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
 
       function handleFocus(evt, explicitTime = null) {
-        if (evt?.preventDefault) {
+        if (!overlay?.node()) {
+          return;
+        }
+        if (evt && typeof evt.type === "string" && evt.type.startsWith("touch")) {
           evt.preventDefault();
         }
-        const pointerX =
-          explicitTime != null
-            ? currentXScale(explicitTime)
-            : Math.max(0, Math.min(width, d3.pointer(evt, overlay.node())[0] ?? 0));
-        const clampedX = Math.max(0, Math.min(width, pointerX));
+        let rawX = null;
+        if (explicitTime != null) {
+          rawX = currentXScale(explicitTime);
+        } else if (evt) {
+          const pointer = d3.pointer(evt, overlay.node());
+          rawX = pointer ? pointer[0] : 0;
+        } else {
+          rawX = 0;
+        }
+        const clampedX = Math.max(0, Math.min(width, rawX ?? 0));
         const time = explicitTime != null ? explicitTime : currentXScale.invert(clampedX);
+        pendingFocusState = { clampedX, time };
+        if (focusUpdateFrame == null) {
+          focusUpdateFrame = window.requestAnimationFrame(() => {
+            focusUpdateFrame = null;
+            if (!pendingFocusState) {
+              return;
+            }
+            applyFocusState(pendingFocusState);
+            pendingFocusState = null;
+          });
+        }
+      }
+
+      function applyFocusState({ clampedX, time }) {
         const nearestHr = findNearestSample(hrSeries, time);
         const segment = segments.find((seg) => time >= seg.startTime && time <= seg.endTime);
         const nearestPace = paceSeries.length ? findNearestSample(paceSeries, time) : null;
         const paceValue = nearestPace?.value ?? null;
 
-        focusLine
-          .attr("x1", clampedX)
-          .attr("x2", clampedX)
-          .style("display", "block");
-        focusHandle
-          .attr("cx", clampedX)
-          .style("display", "block");
+        focusLine.attr("x1", clampedX).attr("x2", clampedX).style("display", "block");
+        focusHandle.attr("cx", clampedX).style("display", "block");
 
         if (nearestHr) {
           focusHrDot

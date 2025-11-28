@@ -23,7 +23,7 @@
       background: #F6FDFF;
       color: #004448;
       overflow: hidden;
-      touch-action: pan-y pinch-zoom;
+      touch-action: manipulation;
     }
 
     body {
@@ -199,15 +199,16 @@
 
     .focus-readout {
       flex: 0 0 auto;
-      max-width: 28%;
-      min-width: 200px;
+      max-width: 24%;
+      min-width: 220px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
       background: #ffffff;
       display: flex;
       flex-wrap: wrap;
-      gap: 10px 14px;
+      align-content: flex-start;
+      gap: 12px 18px;
       font-size: 13px;
       overflow-y: auto;
       align-self: stretch;
@@ -217,9 +218,8 @@
     .focus-readout > div {
       display: inline-flex;
       flex-direction: column;
-      min-width: 140px;
-      max-width: calc(100% - 16px);
       gap: 4px;
+      min-width: 140px;
     }
 
     .focus-readout .label {
@@ -728,6 +728,7 @@
         .attr("class", "interaction-overlay")
         .attr("width", width)
         .attr("height", height);
+      overlay.style("pointer-events", "all");
 
       const supportsPointerEvents = window.PointerEvent != null;
 

@@ -11,80 +11,59 @@
     :root {
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #004448;
-      background: #0b1e22;
+      background: #F6FDFF;
     }
 
     html,
     body {
       margin: 0;
       padding: 0;
-      min-height: 100%;
-      background: #0b1e22;
+      width: 100%;
+      height: 100%;
+      background: #F6FDFF;
       color: #004448;
-      overflow-x: hidden;
-      overflow-y: auto;
+      overflow: hidden;
       touch-action: pan-y pinch-zoom;
     }
 
     body {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 16px 20px;
+      width: 100%;
+      height: 100%;
     }
 
     .page-wrapper {
       position: relative;
+      flex: 1;
       width: 100%;
       max-width: 1600px;
-      padding: 24px 28px 32px;
+      margin: 0 auto;
+      padding: 0;
       box-sizing: border-box;
-      background: #f6fdff;
-      border-radius: 20px;
-      box-shadow: 0 10px 60px rgba(0, 34, 36, 0.25);
-      min-height: calc(100vh - 80px);
+      background: transparent;
       display: flex;
       flex-direction: column;
-    }
-
-    .title-block {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .subtitle {
-      margin: 0;
-      font-size: 0.95rem;
-      opacity: 0.85;
     }
 
     .chart-wrapper {
       width: 100%;
-      margin-top: 24px;
-      position: relative;
+      flex: 1;
       display: flex;
       flex-direction: column;
-      flex: 1;
-      gap: 18px;
+      gap: 16px;
+      padding: 16px;
+      box-sizing: border-box;
       min-height: 0;
     }
 
     .chart-area {
-      flex: 1;
       position: relative;
-      min-height: 360px;
-      border-radius: 16px;
+      flex: 1;
+      min-height: 320px;
+      border-radius: 14px;
       background: #ffffff;
-      box-shadow: inset 0 0 0 1px rgba(0, 68, 72, 0.05);
+      border: 1px solid #CFC4DB;
+      overflow: hidden;
     }
 
     #chart {
@@ -140,7 +119,6 @@
     .legend {
       display: flex;
       gap: 1.25rem;
-      margin-top: 0;
       font-size: 12px;
       font-weight: 400;
       color: #004448;
@@ -198,11 +176,10 @@
     }
 
     .focus-readout {
-      margin-top: 24px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
-      background: transparent;
+      background: #ffffff;
       display: flex;
       gap: 22px;
       flex-wrap: wrap;
@@ -267,10 +244,6 @@
 <body>
   <div class="rotate-overlay">Rotate your device for the optimal landscape view.</div>
   <div class="page-wrapper">
-    <div class="title-block">
-      <h1>Swim Intensity Timeline</h1>
-      <p class="subtitle">Landscape mode for full-session analysis</p>
-    </div>
     <div class="chart-wrapper">
       <div class="chart-area">
         <div id="chart"></div>
@@ -280,8 +253,8 @@
         <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
         <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
       </div>
+      <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     </div>
-    <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     <div class="tooltip" id="tooltip"></div>
     <div id="loading">Loading…</div>
   </div>
@@ -526,13 +499,32 @@
       const chart = d3.select("#chart");
       chart.selectAll("*").remove();
 
-      const svg = chart
+      const rootSvg = chart
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+        .style("width", "100%")
+        .style("height", "100%");
+
+      const clipId = `plot-clip-${Math.random().toString(36).slice(2)}`;
+      rootSvg
+        .append("defs")
+        .append("clipPath")
+        .attr("id", clipId)
+        .attr("clipPathUnits", "userSpaceOnUse")
+        .append("rect")
+        .attr("x", margin.left)
+        .attr("y", margin.top)
+        .attr("width", width)
+        .attr("height", height);
+
+      const svg = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+      const plotGroup = rootSvg
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("class", "plot-area")
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .attr("clip-path", `url(#${clipId})`);
 
       const xAxis = svg
         .append("g")
@@ -573,7 +565,7 @@
           g.selectAll("line").attr("stroke", "none");
         });
 
-      const restBlocks = svg
+      const restBlocks = plotGroup
         .selectAll(".rest-block")
         .data(segments.filter((d) => d.isRest))
         .enter()
@@ -586,7 +578,7 @@
         .attr("fill", intensityPalette.rest.color)
         .attr("opacity", 0.2);
 
-      const paceBars = svg
+      const paceBars = plotGroup
         .selectAll(".pace-bar")
         .data(paceSegments)
         .enter()
@@ -607,7 +599,7 @@
         .attr("fill", "#91BDCD")
         .attr("opacity", 0.8);
 
-      const hrPath = svg
+      const hrPath = plotGroup
         .append("path")
         .datum(hrSeries)
         .attr("class", "line hr-line")
@@ -621,7 +613,7 @@
             .y((d) => hrScale(d.value))(hrSeries)
         );
 
-      const pacePoints = svg
+      const pacePoints = plotGroup
         .selectAll(".pace-point")
         .data(paceSeries)
         .enter()
@@ -651,7 +643,7 @@
         })
         .on("pointerleave", () => tooltip.style("display", "none"));
 
-      const focusGroup = svg.append("g").attr("class", "focus-group");
+      const focusGroup = plotGroup.append("g").attr("class", "focus-group");
       const focusLine = focusGroup
         .append("line")
         .attr("class", "focus-line")
@@ -669,7 +661,7 @@
       const activeTouchIds = new Set();
       let multiTouchActive = false;
 
-      const overlay = svg
+      const overlay = plotGroup
         .append("rect")
         .attr("class", "interaction-overlay")
         .attr("width", width)
@@ -788,7 +780,7 @@
           applyXScale(currentTransform.rescaleX(baseXScale));
         });
 
-      svg.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
+      plotGroup.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
 
       function handleFocus(evt, explicitTime = null) {
         if (!overlay?.node()) {

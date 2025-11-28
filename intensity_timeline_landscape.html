@@ -48,16 +48,24 @@
     .chart-wrapper {
       width: 100%;
       flex: 1;
-      display: grid;
-      grid-template-rows: minmax(0, 0.6fr) auto auto;
+      display: flex;
       gap: 16px;
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
     }
 
+    .chart-column {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     .chart-area {
       position: relative;
+      flex: 1;
       min-height: 260px;
       border-radius: 14px;
       background: #ffffff;
@@ -175,15 +183,17 @@
     }
 
     .focus-readout {
+      width: 260px;
+      max-width: 30%;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
       background: #ffffff;
       display: flex;
-      gap: 22px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 16px;
       font-size: 13px;
-      min-height: 110px;
+      overflow-y: auto;
     }
 
     .focus-readout .label {
@@ -245,13 +255,15 @@
   <div class="rotate-overlay">Rotate your device for the optimal landscape view.</div>
   <div class="page-wrapper">
     <div class="chart-wrapper">
-      <div class="chart-area">
-        <div id="chart"></div>
-      </div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
-        <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-        <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+      <div class="chart-column">
+        <div class="chart-area">
+          <div id="chart"></div>
+        </div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+          <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+          <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+        </div>
       </div>
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     </div>
@@ -375,20 +387,37 @@
 
       const chartContainer = document.getElementById("chart");
       const chartArea = chartContainer?.parentElement;
-      const chartRect = chartArea?.getBoundingClientRect();
+      const chartWrapper = document.querySelector(".chart-wrapper");
+      const chartColumn = document.querySelector(".chart-column");
+      const legendEl = document.querySelector(".legend");
+      const focusReadoutEl = document.getElementById("focus-readout");
+
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const availableWidth = chartRect && chartRect.width > 0
-        ? chartRect.width
-        : Math.max(1100, viewportWidth * 0.82);
+      const wrapperHeight = chartWrapper?.clientHeight ?? viewportHeight;
+      const columnGap = chartColumn
+        ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
+        : 0;
+      const legendHeight = legendEl?.offsetHeight ?? 0;
+      const readoutHeight = focusReadoutEl?.offsetHeight ?? 0;
+      const columnHeight = chartColumn?.getBoundingClientRect()?.height ?? wrapperHeight;
+      const reservedHeight = legendHeight + columnGap;
 
-      const availableHeight = chartRect && chartRect.height > 0
-        ? chartRect.height
-        : Math.max(320, viewportHeight * 0.6);
+      let chartAreaHeight = columnHeight - reservedHeight;
+      if (!Number.isFinite(chartAreaHeight) || chartAreaHeight <= 0) {
+        chartAreaHeight = Math.max(260, wrapperHeight * 0.6);
+      }
+      chartAreaHeight = Math.max(260, Math.min(chartAreaHeight, wrapperHeight * 0.75));
 
-      width = Math.max(800, availableWidth - margin.left - margin.right);
-      height = Math.max(220, availableHeight - margin.top - margin.bottom);
+      if (chartArea) {
+        chartArea.style.height = `${chartAreaHeight}px`;
+      }
+
+      const chartWidth = chartArea?.clientWidth ?? Math.max(1100, viewportWidth * 0.7);
+
+      width = Math.max(720, chartWidth - margin.left - margin.right);
+      height = Math.max(200, chartAreaHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;
       const segments = [];

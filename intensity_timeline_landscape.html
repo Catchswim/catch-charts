@@ -676,35 +676,7 @@
             .y((d) => hrScale(d.value))(hrSeries)
         );
 
-      const pacePoints = plotGroup
-        .selectAll(".pace-point")
-        .data(paceSeries)
-        .enter()
-        .append("circle")
-        .attr("class", "pace-point")
-        .attr("cx", (d) => currentXScale(d.time))
-        .attr("cy", (d) => paceScale(d.value))
-        .attr("r", 4)
-        .attr("fill", "#91BDCD")
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 1.2)
-        .on("pointerenter", (event, datum) => {
-          tooltip
-            .style("display", "block")
-            .html(`
-              <strong>${datum.label}</strong><br/>
-              Pace: ${formatPace(datum.value)}<br/>
-              Avg HR: ${datum.rep_avg_hr ? datum.rep_avg_hr.toFixed(0) : "n/a"} bpm<br/>
-              Duration: ${formatTime(datum.duration)}<br/>
-              Intensity: ${(intensityPalette[datum.intensity] ?? intensityPalette.medium).label}
-            `);
-        })
-        .on("pointermove", (event) => {
-          tooltip
-            .style("left", `${event.pageX + 12}px`)
-            .style("top", `${event.pageY - 12}px`);
-        })
-        .on("pointerleave", () => tooltip.style("display", "none"));
+      // Removed pace point markers per latest requirements
 
       const focusGroup = plotGroup.append("g").attr("class", "focus-group");
       const focusLine = focusGroup

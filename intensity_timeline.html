@@ -456,9 +456,26 @@
         .attr("height", svgHeight)
         .attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
 
-      const svg = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+      const clipId = `plot-clip-${Math.random().toString(36).slice(2)}`;
+      rootSvg
+        .append("defs")
+        .append("clipPath")
+        .attr("id", clipId)
+        .attr("clipPathUnits", "userSpaceOnUse")
+        .append("rect")
+        .attr("x", margin.left)
+        .attr("y", margin.top)
+        .attr("width", width)
+        .attr("height", height);
 
-      const xAxis = svg
+      const axisGroup = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+      const plotGroup = rootSvg
+        .append("g")
+        .attr("class", "plot-area")
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .attr("clip-path", `url(#${clipId})`);
+
+      const xAxis = axisGroup
         .append("g")
         .attr("class", "axis x-axis")
         .attr("transform", `translate(0,${height})`)
@@ -473,7 +490,7 @@
           g.selectAll("line").attr("stroke", "none");
         });
 
-      svg
+      axisGroup
         .append("g")
         .attr("class", "axis y-axis")
         .call(d3.axisLeft(hrScale).ticks(6))
@@ -482,7 +499,7 @@
           g.selectAll("line").attr("stroke", "none");
         });
 
-      svg
+      axisGroup
         .append("g")
         .attr("class", "axis y-axis secondary")
         .attr("transform", `translate(${width},0)`)
@@ -497,7 +514,7 @@
           g.selectAll("line").attr("stroke", "none");
         });
 
-      const restBlocks = svg
+      const restBlocks = plotGroup
         .selectAll(".rest-block")
         .data(segments.filter((d) => d.isRest))
         .enter()
@@ -510,7 +527,7 @@
         .attr("fill", intensityPalette.rest.color)
         .attr("opacity", 0.2);
 
-      const paceBars = svg
+      const paceBars = plotGroup
         .selectAll(".pace-bar")
         .data(paceSegments)
         .enter()
@@ -531,7 +548,7 @@
         .attr("fill", "#91BDCD")
         .attr("opacity", 0.8);
 
-      const hrPath = svg
+      const hrPath = plotGroup
         .append("path")
         .datum(hrSeries)
         .attr("class", "line hr-line")
@@ -545,7 +562,7 @@
             .y((d) => hrScale(d.value))(hrSeries)
         );
 
-      const pacePoints = svg
+      const pacePoints = plotGroup
         .selectAll(".pace-point")
         .data(paceSeries)
         .enter()
@@ -575,7 +592,7 @@
         })
         .on("pointerleave", () => tooltip.style("display", "none"));
 
-      const focusGroup = svg.append("g").attr("class", "focus-group");
+      const focusGroup = plotGroup.append("g").attr("class", "focus-group");
       const focusLine = focusGroup
         .append("line")
         .attr("class", "focus-line")
@@ -593,7 +610,7 @@
       const activeTouchIds = new Set();
       let multiTouchActive = false;
 
-      const overlay = svg
+      const overlay = plotGroup
         .append("rect")
         .attr("class", "interaction-overlay")
         .attr("width", width)
@@ -712,7 +729,7 @@
           applyXScale(currentTransform.rescaleX(baseXScale));
         });
 
-      rootSvg.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
+      plotGroup.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
 
       function handleFocus(evt, explicitTime = null) {
         if (!overlay?.node()) {

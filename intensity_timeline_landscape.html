@@ -49,6 +49,7 @@
       width: 100%;
       flex: 1;
       display: flex;
+      align-items: stretch;
       gap: 16px;
       padding: 16px;
       box-sizing: border-box;
@@ -197,25 +198,28 @@
     }
 
     .focus-readout {
-      flex: 0 0 240px;
+      flex: 0 0 auto;
       max-width: 28%;
       min-width: 200px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
       background: #ffffff;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
       font-size: 13px;
       overflow-y: auto;
+      align-self: stretch;
+      box-sizing: border-box;
     }
 
     .focus-readout > div {
-      display: flex;
+      display: inline-flex;
       flex-direction: column;
+      min-width: 140px;
+      max-width: calc(100% - 16px);
       gap: 4px;
-      min-width: 0;
     }
 
     .focus-readout .label {
@@ -591,7 +595,7 @@
         .call(
           d3
             .axisBottom(currentXScale)
-            .ticks(Math.min(12, Math.ceil(totalDuration / 90)))
+            .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
             .tickFormat((value) => formatTime(value))
         )
         .call((g) => {
@@ -602,7 +606,7 @@
       svg
         .append("g")
         .attr("class", "axis y-axis")
-        .call(d3.axisLeft(hrScale).ticks(8))
+        .call(d3.axisLeft(hrScale).ticks(6))
         .call((g) => {
           g.select(".domain").attr("stroke", "none");
           g.selectAll("line").attr("stroke", "none");
@@ -615,7 +619,7 @@
         .call(
           d3
             .axisRight(paceScale)
-            .ticks(8)
+            .ticks(5)
             .tickFormat((value) => formatPace(value, false))
         )
         .call((g) => {
@@ -816,8 +820,10 @@
       let focusUpdateFrame = null;
       let pendingFocusState = null;
       let currentTransform = d3.zoomIdentity;
+      const overlayNode = overlay.node();
       const zoom = d3
         .zoom()
+        .filter((event) => event.target === overlayNode)
         .scaleExtent([1, 14])
         .translateExtent([
           [0, 0],
@@ -913,7 +919,7 @@
           .call(
             d3
               .axisBottom(currentXScale)
-              .ticks(Math.min(12, Math.ceil(totalDuration / 90)))
+              .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
               .tickFormat((value) => formatTime(value))
           )
           .call((g) => {

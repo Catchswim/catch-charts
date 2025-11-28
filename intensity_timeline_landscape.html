@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Swim Intensity Timeline · Landscape</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+    :root {
+      font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #004448;
+      background: #0b1e22;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0b1e22;
+      color: #004448;
+      overflow: hidden;
+      touch-action: pan-y pinch-zoom;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 1600px;
+      padding: 32px 40px 48px;
+      box-sizing: border-box;
+      background: #f6fdff;
+      border-radius: 20px;
+      box-shadow: 0 10px 60px rgba(0, 34, 36, 0.25);
+    }
+
+    .title-block {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    .chart-wrapper {
+      width: 100%;
+      margin-top: 24px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chart {
+      position: relative;
+      width: 100%;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .axis line,
+    .axis path {
+      stroke: none;
+    }
+
+    .axis text {
+      fill: #004448;
+      font-size: 18px;
+      font-family: inherit;
+    }
+
+    .line {
+      fill: none;
+      stroke-linecap: round;
+      stroke-width: 3;
+    }
+
+    .hr-line {
+      stroke: #E45F5D;
+    }
+
+    .tooltip {
+      position: absolute;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.55rem;
+      background: #ffffff;
+      border: 1px solid #CFC4DB;
+      pointer-events: none;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      display: none;
+      box-shadow: 0 10px 30px rgba(0, 68, 72, 0.15);
+      font-family: inherit;
+      color: #004448;
+      z-index: 5;
+    }
+
+    .legend {
+      display: flex;
+      gap: 1.25rem;
+      margin-top: 20px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #004448;
+      flex-wrap: wrap;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+    }
+
+    .rest-block {
+      fill: #E5E5E5;
+      opacity: 0.2;
+    }
+
+    .interaction-overlay {
+      fill: transparent;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .focus-line {
+      stroke: rgba(0, 68, 72, 0.7);
+      stroke-width: 2.5px;
+      stroke-dasharray: 4 3;
+      display: none;
+    }
+
+    .focus-dot {
+      r: 5;
+      stroke: #fff;
+      stroke-width: 2px;
+      display: none;
+    }
+
+    .focus-dot.hr {
+      fill: #E45F5D;
+    }
+
+    .focus-dot.pace {
+      fill: #91BDCD;
+    }
+
+    .focus-handle {
+      display: none;
+      fill: #004448;
+      stroke: #ffffff;
+      stroke-width: 2px;
+      r: 6;
+    }
+
+    .focus-readout {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #CFC4DB;
+      background: transparent;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+
+    .focus-readout .label {
+      font-size: 12px;
+      font-weight: 400;
+      opacity: 0.75;
+      margin-bottom: 0.15rem;
+    }
+
+    .focus-readout .value {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .focus-readout.empty {
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.85;
+    }
+
+    #loading {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.75rem;
+      background: transparent;
+      border: 1px solid #CFC4DB;
+      text-align: center;
+      font-size: 0.95rem;
+      color: #004448;
+      letter-spacing: 0.02em;
+    }
+
+    .rotate-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 30, 34, 0.92);
+      color: #f6fdff;
+      font-size: 1.2rem;
+      font-weight: 500;
+      text-align: center;
+      padding: 24px;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    @media (orientation: portrait) {
+      .rotate-overlay {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="rotate-overlay">Rotate your device for the optimal landscape view.</div>
+  <div class="page-wrapper">
+    <div class="title-block">
+      <h1>Swim Intensity Timeline</h1>
+      <p class="subtitle">Landscape mode for full-session analysis</p>
+    </div>
+    <div class="chart-wrapper">
+      <div id="chart"></div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+        <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+        <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+      </div>
+    </div>
+    <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
+    <div class="tooltip" id="tooltip"></div>
+    <div id="loading">Loading…</div>
+  </div>
+
+  <script>
+    const tooltip = d3.select("#tooltip");
+    const readoutEl = document.getElementById("focus-readout");
+    let width = 1400;
+    let height = 720;
+    const margin = { top: 12, right: 80, bottom: 32, left: 90 };
+    const loadingEl = document.getElementById("loading");
+    const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
+    const intensityPalette = {
+      rest: { label: "Rest", color: "#E5E5E5" },
+      easy: { label: "Easy", color: "#2563eb" },
+      medium: { label: "Medium", color: "#facc15" },
+      fast: { label: "Fast", color: "#22c55e" },
+      max: { label: "Max", color: "#b91c1c" },
+    };
+
+    async function tryLockOrientation() {
+      if (window.screen?.orientation?.lock) {
+        try {
+          await window.screen.orientation.lock("landscape");
+        } catch (_) {
+          // Ignore failures gracefully; not supported everywhere.
+        }
+      }
+    }
+
+    window.addEventListener("load", () => {
+      tryLockOrientation();
+    });
+
+    function setLoading(show) {
+      if (!loadingEl) return;
+      loadingEl.textContent = "Loading…";
+      loadingEl.style.display = show ? "block" : "none";
+    }
+
+    function resetReadout(message = "Tap anywhere to find out more.") {
+      if (!readoutEl) return;
+      readoutEl.classList.add("empty");
+      readoutEl.textContent = message;
+    }
+
+    setLoading(true);
+    resetReadout();
+
+    async function fetchSession(sessionId, token) {
+      const headers = new Headers({ accept: "application/json" });
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      const resp = await fetch(`${functionUrl}?sessionId=${encodeURIComponent(sessionId)}`, {
+        headers,
+      });
+      if (!resp.ok) {
+        throw new Error(`Function returned ${resp.status}`);
+      }
+      const payload = await resp.json();
+      if (!payload?.sessionData) {
+        throw new Error("Session data missing");
+      }
+      return payload.sessionData;
+    }
+
+    function showError(message) {
+      if (loadingEl) {
+        loadingEl.textContent = message;
+      }
+      resetReadout(message);
+      setLoading(true);
+    }
+
+    function parseSessionId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("sessionId");
+    }
+
+    function parseToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("token");
+    }
+
+    async function hydrateChart() {
+      const sessionId = parseSessionId();
+      if (!sessionId) {
+        showError("Missing session id");
+        return;
+      }
+      const token = parseToken();
+      try {
+        const payload = await fetchSession(sessionId, token);
+        setLoading(false);
+        renderChart(payload);
+        if (token) {
+          window.history.replaceState({}, "", window.location.pathname + window.location.search.replace(/&?token=[^&]*/, ""));
+        }
+      } catch (error) {
+        console.error(error);
+        showError("Unable to load swim data");
+      }
+    }
+
+    function renderChart(data) {
+      resetReadout();
+
+      const chartContainer = document.getElementById("chart");
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+
+      height = Math.max(520, viewportHeight * 0.78) - margin.top - margin.bottom;
+      let computedWidth = Math.max(1100, viewportWidth * 0.85) - margin.left - margin.right;
+      if (chartContainer && chartContainer.clientWidth > 0) {
+        computedWidth = Math.max(computedWidth, chartContainer.clientWidth - margin.left - margin.right);
+      }
+      width = computedWidth;
+
+      const providerDetail = data.provider_workout_detail ?? null;
+      const segments = [];
+      let cumulative = 0;
+
+      (data.segments ?? []).forEach((segment) => {
+        const duration = Math.max(segment.rep_time_seconds ?? 0, 0);
+        const startTime = cumulative;
+        cumulative += duration;
+        const distance = segment.rep_distance_meters ?? 0;
+        const isRest = distance <= 0;
+        segments.push({
+          ...segment,
+          startTime,
+          endTime: startTime + duration,
+          midTime: startTime + duration / 2,
+          isRest,
+          intensity: inferIntensity(segment.rep_description, isRest),
+          label: `${segment.rep_description ?? "Segment"} · ${distance > 0 ? `${distance.toFixed(0)} m` : "rest"}`,
+        });
+      });
+
+      const totalDuration = cumulative || data.summary?.total_duration || 0;
+      const heartRateSeries = buildHeartRateSeries(providerDetail, segments, totalDuration);
+      let hrSeries = heartRateSeries.length
+        ? heartRateSeries
+        : segments
+          .filter((seg) => seg.rep_avg_hr != null)
+          .map((seg) => ({
+            time: seg.midTime,
+            value: seg.rep_avg_hr,
+          }));
+
+      if (hrSeries.length) {
+        const first = hrSeries[0];
+        const last = hrSeries[hrSeries.length - 1];
+        if (first.time > 0) {
+          hrSeries = [{ time: 0, value: first.value }, ...hrSeries];
+        }
+        const sessionEnd = totalDuration || segments[segments.length - 1]?.endTime || last.time;
+        if (sessionEnd && last.time < sessionEnd) {
+          hrSeries = [...hrSeries, { time: sessionEnd, value: last.value }];
+        }
+      }
+
+      const paceSegments = segments.filter((seg) => !seg.isRest && seg.rep_pace != null);
+      let paceSeries = paceSegments.map((seg) => ({
+        time: seg.midTime ?? seg.startTime,
+        value: seg.rep_pace,
+        label: seg.label,
+        rep_avg_hr: seg.rep_avg_hr,
+        duration: seg.endTime - seg.startTime,
+        intensity: seg.intensity,
+      }));
+
+      if (paceSeries.length) {
+        paceSeries = paceSeries.sort((a, b) => a.time - b.time);
+        const paceFirst = paceSeries[0];
+        const paceLast = paceSeries[paceSeries.length - 1];
+        if (paceFirst.time > 0) {
+          paceSeries = [{ ...paceFirst, time: 0 }, ...paceSeries];
+        }
+        const sessionEnd = totalDuration || segments[segments.length - 1]?.endTime || paceLast.time;
+        if (sessionEnd && paceLast.time < sessionEnd) {
+          paceSeries = [
+            ...paceSeries,
+            {
+              ...paceLast,
+              time: sessionEnd,
+            },
+          ];
+        }
+      }
+
+      const hrMaxTime = hrSeries.length ? d3.max(hrSeries, (d) => d.time) : 0;
+      const domainMax = Math.max(totalDuration, hrMaxTime ?? 0);
+
+      const paceExtent = d3.extent(paceSeries, (d) => d.value);
+      const pacePadding = 12;
+      const hrExtent = d3.extent(hrSeries, (d) => d.value);
+      const hrPadding = 12;
+
+      const paceScale = d3
+        .scaleLinear()
+        .domain([
+          (paceExtent[1] ?? 150) + pacePadding,
+          Math.max(0, (paceExtent[0] ?? 80) - pacePadding),
+        ])
+        .range([height, 0])
+        .nice();
+
+      const hrScale = d3
+        .scaleLinear()
+        .domain([
+          Math.min(hrExtent[0] ?? 110, 90) - hrPadding,
+          Math.max(hrExtent[1] ?? 160, 180) + hrPadding,
+        ])
+        .range([height, 0])
+        .nice();
+
+      const xScale = d3
+        .scaleLinear()
+        .domain([0, domainMax || totalDuration || 1])
+        .range([0, width])
+        .nice();
+      const baseXScale = xScale.copy();
+      let currentXScale = baseXScale;
+
+      const chart = d3.select("#chart");
+      chart.selectAll("*").remove();
+
+      const svg = chart
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const xAxis = svg
+        .append("g")
+        .attr("class", "axis x-axis")
+        .attr("transform", `translate(0,${height})`)
+        .call(
+          d3
+            .axisBottom(currentXScale)
+            .ticks(Math.min(12, Math.ceil(totalDuration / 90)))
+            .tickFormat((value) => formatTime(value))
+        )
+        .call((g) => {
+          g.select(".domain").attr("stroke", "none");
+          g.selectAll("line").attr("stroke", "none");
+        });
+
+      svg
+        .append("g")
+        .attr("class", "axis y-axis")
+        .call(d3.axisLeft(hrScale).ticks(8))
+        .call((g) => {
+          g.select(".domain").attr("stroke", "none");
+          g.selectAll("line").attr("stroke", "none");
+        });
+
+      svg
+        .append("g")
+        .attr("class", "axis y-axis secondary")
+        .attr("transform", `translate(${width},0)`)
+        .call(
+          d3
+            .axisRight(paceScale)
+            .ticks(8)
+            .tickFormat((value) => formatPace(value, false))
+        )
+        .call((g) => {
+          g.select(".domain").attr("stroke", "none");
+          g.selectAll("line").attr("stroke", "none");
+        });
+
+      const restBlocks = svg
+        .selectAll(".rest-block")
+        .data(segments.filter((d) => d.isRest))
+        .enter()
+        .append("rect")
+        .attr("class", "rest-block")
+        .attr("x", (d) => currentXScale(d.startTime))
+        .attr("y", 0)
+        .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1))
+        .attr("height", height)
+        .attr("fill", intensityPalette.rest.color)
+        .attr("opacity", 0.2);
+
+      const paceBars = svg
+        .selectAll(".pace-bar")
+        .data(paceSegments)
+        .enter()
+        .append("rect")
+        .attr("class", "pace-bar")
+        .attr("x", (d) => {
+          const xStart = currentXScale(d.startTime);
+          return isNaN(xStart) ? 0 : xStart;
+        })
+        .attr("y", (d) => paceScale(d.rep_pace))
+        .attr("width", (d) => {
+          const xStart = currentXScale(d.startTime);
+          const xEnd = currentXScale(d.endTime);
+          const barWidth = xEnd - xStart;
+          return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
+        })
+        .attr("height", (d) => height - paceScale(d.rep_pace))
+        .attr("fill", "#91BDCD")
+        .attr("opacity", 0.8);
+
+      const hrPath = svg
+        .append("path")
+        .datum(hrSeries)
+        .attr("class", "line hr-line")
+        .attr(
+          "d",
+          d3
+            .line()
+            .defined((d) => d.value != null)
+            .curve(d3.curveCatmullRom.alpha(0.35))
+            .x((d) => currentXScale(d.time))
+            .y((d) => hrScale(d.value))(hrSeries)
+        );
+
+      const pacePoints = svg
+        .selectAll(".pace-point")
+        .data(paceSeries)
+        .enter()
+        .append("circle")
+        .attr("class", "pace-point")
+        .attr("cx", (d) => currentXScale(d.time))
+        .attr("cy", (d) => paceScale(d.value))
+        .attr("r", 4)
+        .attr("fill", "#91BDCD")
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 1.2)
+        .on("pointerenter", (event, datum) => {
+          tooltip
+            .style("display", "block")
+            .html(`
+              <strong>${datum.label}</strong><br/>
+              Pace: ${formatPace(datum.value)}<br/>
+              Avg HR: ${datum.rep_avg_hr ? datum.rep_avg_hr.toFixed(0) : "n/a"} bpm<br/>
+              Duration: ${formatTime(datum.duration)}<br/>
+              Intensity: ${(intensityPalette[datum.intensity] ?? intensityPalette.medium).label}
+            `);
+        })
+        .on("pointermove", (event) => {
+          tooltip
+            .style("left", `${event.pageX + 12}px`)
+            .style("top", `${event.pageY - 12}px`);
+        })
+        .on("pointerleave", () => tooltip.style("display", "none"));
+
+      const focusGroup = svg.append("g").attr("class", "focus-group");
+      const focusLine = focusGroup
+        .append("line")
+        .attr("class", "focus-line")
+        .attr("y1", 0)
+        .attr("y2", height);
+      const focusHrDot = focusGroup.append("circle").attr("class", "focus-dot hr");
+      const focusPaceDot = focusGroup.append("circle").attr("class", "focus-dot pace");
+      const focusHandle = focusGroup
+        .append("circle")
+        .attr("class", "focus-handle")
+        .attr("cy", -8);
+
+      let activePointerId = null;
+      let lastFocusTime = null;
+      const activeTouchIds = new Set();
+      let multiTouchActive = false;
+
+      const overlay = svg
+        .append("rect")
+        .attr("class", "interaction-overlay")
+        .attr("width", width)
+        .attr("height", height);
+
+      const supportsPointerEvents = window.PointerEvent != null;
+
+      if (supportsPointerEvents) {
+        overlay
+          .on("pointerdown.focus", (event) => {
+            const node = overlay.node();
+            if (event.pointerType === "touch") {
+              activeTouchIds.add(event.pointerId);
+              multiTouchActive = activeTouchIds.size > 1;
+              if (multiTouchActive) {
+                if (node && node.releasePointerCapture) {
+                  node.releasePointerCapture(event.pointerId);
+                }
+                activePointerId = null;
+                return;
+              }
+            }
+            activePointerId = event.pointerId;
+            if (node && node.setPointerCapture && event.pointerType !== "touch") {
+              node.setPointerCapture(activePointerId);
+            }
+            handleFocus(event);
+          })
+          .on("pointermove.focus", (event) => {
+            const isTouch = event.pointerType === "touch";
+            const isActiveDrag = (event.buttons & 1) === 1 || isTouch;
+            if (isTouch) {
+              if (!activeTouchIds.has(event.pointerId) || multiTouchActive) {
+                return;
+              }
+            }
+            if (event.pointerId === activePointerId && isActiveDrag) {
+              handleFocus(event);
+            }
+          })
+          .on("pointerup.focus pointercancel.focus pointerleave.focus", (event) => {
+            if (event.pointerType === "touch") {
+              activeTouchIds.delete(event.pointerId);
+              multiTouchActive = activeTouchIds.size > 1;
+            }
+            if (event.pointerId === activePointerId) {
+              const node = overlay.node();
+              if (node && node.releasePointerCapture && event.pointerType !== "touch") {
+                node.releasePointerCapture(activePointerId);
+              }
+              activePointerId = null;
+            }
+          });
+      } else {
+        overlay
+          .on("touchstart.focus", (event) => {
+            if (event.touches && event.touches.length > 1) {
+              multiTouchActive = true;
+              activePointerId = null;
+              return;
+            }
+            multiTouchActive = false;
+            activePointerId = "touch";
+            handleFocus(event);
+          })
+          .on("touchmove.focus", (event) => {
+            if (multiTouchActive || activePointerId !== "touch") {
+              return;
+            }
+            handleFocus(event);
+          })
+          .on("touchend.focus touchcancel.focus", () => {
+            activePointerId = null;
+            multiTouchActive = false;
+          })
+          .on("mousedown.focus", (event) => {
+            activePointerId = "mouse";
+            handleFocus(event);
+          })
+          .on("mousemove.focus", (event) => {
+            const isActiveDrag = event.buttons == null ? event.which === 1 : (event.buttons & 1) === 1;
+            if (activePointerId !== "mouse" || !isActiveDrag) {
+              return;
+            }
+            handleFocus(event);
+          })
+          .on("mouseup.focus mouseleave.focus", () => {
+            if (activePointerId === "mouse") {
+              activePointerId = null;
+            }
+          });
+      }
+
+      let focusUpdateFrame = null;
+      let pendingFocusState = null;
+      let currentTransform = d3.zoomIdentity;
+      const zoom = d3
+        .zoom()
+        .scaleExtent([1, 14])
+        .translateExtent([
+          [0, 0],
+          [width, height],
+        ])
+        .extent([
+          [0, 0],
+          [width, height],
+        ])
+        .constrain((transform) => {
+          const k = Math.max(1, Math.min(14, transform.k));
+          const minTranslateX = width * (1 - k);
+          const clampedX = Math.min(0, Math.max(minTranslateX, transform.x));
+          return d3.zoomIdentity.translate(clampedX, 0).scale(k);
+        })
+        .on("zoom", (event) => {
+          currentTransform = event.transform;
+          applyXScale(currentTransform.rescaleX(baseXScale));
+        });
+
+      svg.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
+
+      function handleFocus(evt, explicitTime = null) {
+        if (!overlay?.node()) {
+          return;
+        }
+        if (evt && typeof evt.type === "string" && evt.type.startsWith("touch")) {
+          evt.preventDefault();
+        }
+        let rawX = null;
+        if (explicitTime != null) {
+          rawX = currentXScale(explicitTime);
+        } else if (evt) {
+          const pointer = d3.pointer(evt, overlay.node());
+          rawX = pointer ? pointer[0] : 0;
+        } else {
+          rawX = 0;
+        }
+        const clampedX = Math.max(0, Math.min(width, rawX ?? 0));
+        const time = explicitTime != null ? explicitTime : currentXScale.invert(clampedX);
+        pendingFocusState = { clampedX, time };
+        if (focusUpdateFrame == null) {
+          focusUpdateFrame = window.requestAnimationFrame(() => {
+            focusUpdateFrame = null;
+            if (!pendingFocusState) {
+              return;
+            }
+            applyFocusState(pendingFocusState);
+            pendingFocusState = null;
+          });
+        }
+      }
+
+      function applyFocusState({ clampedX, time }) {
+        const nearestHr = findNearestSample(hrSeries, time);
+        const segment = segments.find((seg) => time >= seg.startTime && time <= seg.endTime);
+        const nearestPace = paceSeries.length ? findNearestSample(paceSeries, time) : null;
+        const paceValue = nearestPace?.value ?? null;
+
+        focusLine.attr("x1", clampedX).attr("x2", clampedX).style("display", "block");
+        focusHandle.attr("cx", clampedX).style("display", "block");
+
+        if (nearestHr) {
+          focusHrDot
+            .attr("cx", currentXScale(nearestHr.time))
+            .attr("cy", hrScale(nearestHr.value))
+            .style("display", "block");
+        } else {
+          focusHrDot.style("display", "none");
+        }
+
+        if (paceValue != null && nearestPace) {
+          focusPaceDot
+            .attr("cx", currentXScale(nearestPace.time))
+            .attr("cy", paceScale(paceValue))
+            .style("display", "block");
+        } else {
+          focusPaceDot.style("display", "none");
+        }
+
+        lastFocusTime = time;
+        updateReadout({
+          time,
+          heartRate: nearestHr?.value ?? null,
+          segment,
+          pace: paceValue,
+        });
+      }
+
+      function applyXScale(scale) {
+        currentXScale = scale;
+        xAxis
+          .call(
+            d3
+              .axisBottom(currentXScale)
+              .ticks(Math.min(12, Math.ceil(totalDuration / 90)))
+              .tickFormat((value) => formatTime(value))
+          )
+          .call((g) => {
+            g.select(".domain").attr("stroke", "none");
+            g.selectAll("line").attr("stroke", "none");
+          });
+
+        restBlocks
+          .attr("x", (d) => currentXScale(d.startTime))
+          .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1));
+
+        paceBars
+          .attr("x", (d) => {
+            const xStart = currentXScale(d.startTime);
+            return isNaN(xStart) ? 0 : xStart;
+          })
+          .attr("width", (d) => {
+            const xStart = currentXScale(d.startTime);
+            const xEnd = currentXScale(d.endTime);
+            const barWidth = xEnd - xStart;
+            return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
+          });
+
+        pacePoints.attr("cx", (d) => currentXScale(d.time));
+
+        hrPath.attr(
+          "d",
+          d3
+            .line()
+            .defined((d) => d.value != null)
+            .curve(d3.curveCatmullRom.alpha(0.35))
+            .x((d) => currentXScale(d.time))
+            .y((d) => hrScale(d.value))(hrSeries)
+        );
+
+        if (lastFocusTime != null) {
+          handleFocus(null, lastFocusTime);
+        }
+      }
+
+      const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
+      handleFocus(null, defaultFocusTime);
+    }
+
+    hydrateChart();
+
+    function formatTime(value) {
+      const safeValue = Number.isFinite(value) ? value : 0;
+      const minutes = Math.floor(safeValue / 60);
+      const seconds = Math.max(0, Math.round(safeValue % 60))
+        .toString()
+        .padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function formatPace(value, includeUnit = true) {
+      if (value == null || Number.isNaN(value)) {
+        return "n/a";
+      }
+      const seconds = Math.max(0, value);
+      const minutesPart = Math.floor(seconds / 60);
+      const secondsPart = Math.round(seconds % 60)
+        .toString()
+        .padStart(2, "0");
+      const formatted = `${minutesPart}m ${secondsPart}s`;
+      return includeUnit ? `${formatted} / 100m` : formatted;
+    }
+
+    function inferIntensity(description = "", isRest = false) {
+      if (isRest) {
+        return "rest";
+      }
+      const text = description.toLowerCase();
+      if (text.includes("warm") || text.includes("cool") || text.includes("easy") || text.includes("technique") || text.includes("drill")) {
+        return "easy";
+      }
+      if (text.includes("max") || text.includes("all out") || text.includes("sprint")) {
+        return "max";
+      }
+      if (text.includes("fast") || text.includes("hard")) {
+        return "fast";
+      }
+      return "medium";
+    }
+
+    function buildHeartRateSeries(providerDetail, segments, sessionDuration) {
+      if (!providerDetail) {
+        return [];
+      }
+      const bridgeSamples = providerDetail.bridgeDetail?.heartRate?.samples;
+      if (Array.isArray(bridgeSamples) && bridgeSamples.length) {
+        const reference = new Date(
+          providerDetail.bridgeDetail?.startDate ||
+          providerDetail.startDate ||
+          bridgeSamples[0]?.timestamp ||
+          bridgeSamples[0]?.startDate ||
+          Date.now()
+        ).getTime();
+        return bridgeSamples
+          .filter((sample) => sample?.value != null)
+          .map((sample) => ({
+            time: Math.max(
+              0,
+              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
+            ),
+            value: sample.value,
+          }))
+          .sort((a, b) => a.time - b.time);
+      }
+
+      if (providerDetail.heartRate?.samples?.length) {
+        const samples = providerDetail.heartRate.samples;
+        const reference =
+          new Date(providerDetail.startDate || samples[0]?.timestamp || samples[0]?.startDate || Date.now()).getTime();
+        return samples
+          .filter((sample) => sample.value != null)
+          .map((sample) => ({
+            time: Math.max(
+              0,
+              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
+            ),
+            value: sample.value,
+          }))
+          .sort((a, b) => a.time - b.time);
+      }
+
+      if (Array.isArray(providerDetail.records)) {
+        const timestampEntry = providerDetail.records.find((rec) => rec.timestamp || rec.startTime);
+        const reference = timestampEntry ? new Date(timestampEntry.timestamp || timestampEntry.startTime).getTime() : null;
+        if (!reference) {
+          return [];
+        }
+        return providerDetail.records
+          .filter((rec) => typeof rec.heartRate === "number")
+          .map((rec) => ({
+            time: Math.max(
+              0,
+              (new Date(rec.timestamp || rec.startTime).getTime() - reference) / 1000
+            ),
+            value: rec.heartRate,
+          }))
+          .sort((a, b) => a.time - b.time);
+      }
+
+      return [];
+    }
+
+    function findNearestSample(series, target) {
+      if (!series.length) {
+        return null;
+      }
+      let left = 0;
+      let right = series.length - 1;
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (series[mid].time < target) {
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+      const candidates = [];
+      if (left < series.length) {
+        candidates.push(series[left]);
+      }
+      if (left - 1 >= 0) {
+        candidates.push(series[left - 1]);
+      }
+      if (!candidates.length) {
+        return series[0];
+      }
+      return candidates.reduce((closest, sample) => {
+        return Math.abs(sample.time - target) < Math.abs(closest.time - target) ? sample : closest;
+      });
+    }
+
+    function updateReadout({ time, heartRate, segment, pace }) {
+      if (!readoutEl) {
+        return;
+      }
+      readoutEl.classList.remove("empty");
+      const intensityLabel = segment
+        ? (intensityPalette[segment.intensity] ?? intensityPalette.medium).label
+        : "—";
+      const stateLabel = segment?.isRest ? intensityLabel : pace != null ? formatPace(pace) : "—";
+      const hrLabel = heartRate != null ? `${Math.round(heartRate)} bpm` : "—";
+      const segmentLabel = segment?.rep_description ?? "—";
+      readoutEl.innerHTML = `
+        <div>
+          <div class="label">Time</div>
+          <div class="value">${formatTime(time)}</div>
+        </div>
+        <div>
+          <div class="label">Heart rate</div>
+          <div class="value">${hrLabel}</div>
+        </div>
+        <div>
+          <div class="label">Distance</div>
+          <div class="value">${segment?.rep_distance_meters != null ? `${segment.rep_distance_meters.toFixed(0)} m` : "—"}</div>
+        </div>
+        ${!segment?.isRest ? `
+        <div>
+          <div class="label">Pace</div>
+          <div class="value">${stateLabel}</div>
+        </div>
+        ` : ''}
+        <div>
+          <div class="label">Rep</div>
+          <div class="value">${segmentLabel}</div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
+
+

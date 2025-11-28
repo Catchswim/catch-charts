@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Swim Intensity Timeline · Landscape</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
@@ -23,7 +23,7 @@
       background: #F6FDFF;
       color: #004448;
       overflow: hidden;
-      touch-action: manipulation;
+      touch-action: pan-y;
     }
 
     body {
@@ -43,6 +43,7 @@
       background: transparent;
       display: flex;
       flex-direction: column;
+      height: 100%;
     }
 
     .chart-wrapper {
@@ -54,8 +55,8 @@
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: calc(90vh - 40px);
-      max-height: calc(90vh - 40px);
+      height: calc(100% - 40px);
+      max-height: calc(100% - 40px);
     }
 
     .chart-column {
@@ -427,20 +428,15 @@
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const wrapperHeight = Math.max(200, (chartWrapper?.clientHeight ?? viewportHeight) - 40);
+      const wrapperHeight = Math.max(200, chartWrapper?.clientHeight ?? viewportHeight * 0.9);
       const columnGap = chartColumn
         ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
         : 0;
       const legendHeight = legendEl?.offsetHeight ?? 0;
       const readoutHeight = focusReadoutEl?.offsetHeight ?? 0;
-      const columnHeight = chartColumn?.getBoundingClientRect()?.height ?? wrapperHeight;
       const reservedHeight = legendHeight + columnGap;
-
-      let chartAreaHeight = columnHeight - reservedHeight;
-      if (!Number.isFinite(chartAreaHeight) || chartAreaHeight <= 0) {
-        chartAreaHeight = wrapperHeight - reservedHeight;
-      }
-      chartAreaHeight = Math.max(240, Math.min(chartAreaHeight, wrapperHeight));
+      let chartAreaHeight = wrapperHeight - reservedHeight;
+      chartAreaHeight = Math.max(240, chartAreaHeight);
 
       if (chartArea) {
         chartArea.style.height = `${chartAreaHeight}px`;

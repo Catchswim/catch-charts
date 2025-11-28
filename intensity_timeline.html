@@ -682,26 +682,39 @@
           });
       }
 
-      let isUpdatingTransform = false;
+      let suppressZoomUpdate = false;
       const zoom = d3
         .zoom()
         .scaleExtent([1, 10])
+        .translateExtent([
+          [0, 0],
+          [width, height],
+        ])
+        .extent([
+          [0, 0],
+          [width, height],
+        ])
         .on("zoom", (event) => {
-          if (isUpdatingTransform) return;
-          
-          // When fully zoomed out (scale = 1), reset translate to prevent shifting
-          if (event.transform.k <= 1.001) {
-            const resetTransform = d3.zoomIdentity;
-            isUpdatingTransform = true;
-            overlay.call(zoom.transform, resetTransform);
-            isUpdatingTransform = false;
-            const newScale = resetTransform.rescaleX(baseXScale);
-            applyXScale(newScale);
-          } else {
-            // Normal zoom/pan behavior when zoomed in
-            const newScale = event.transform.rescaleX(baseXScale);
-            applyXScale(newScale);
+          if (suppressZoomUpdate) return;
+
+          const current = event.transform;
+          const normalizedScale = Math.max(1, current.k);
+          const maxTranslateX = 0;
+          const minTranslateX = width * (1 - normalizedScale);
+          const clampedX = Math.min(maxTranslateX, Math.max(minTranslateX, current.x));
+          const needsReset = normalizedScale !== current.k || clampedX !== current.x || current.y !== 0;
+
+          if (needsReset) {
+            suppressZoomUpdate = true;
+            const constrained = d3.zoomIdentity.translate(clampedX, 0).scale(normalizedScale);
+            overlay.call(zoom.transform, constrained);
+            suppressZoomUpdate = false;
+            applyXScale(constrained.rescaleX(baseXScale));
+            return;
           }
+
+          const newScale = current.rescaleX(baseXScale);
+          applyXScale(newScale);
         });
 
       overlay.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);

@@ -213,6 +213,7 @@
       overflow-y: auto;
       align-self: stretch;
       box-sizing: border-box;
+      height: 100%;
     }
 
     .focus-readout > div {
@@ -443,6 +444,9 @@
 
       if (chartArea) {
         chartArea.style.height = `${chartAreaHeight}px`;
+      }
+      if (focusReadoutEl) {
+        focusReadoutEl.style.height = `${chartAreaHeight}px`;
       }
 
       const chartWidth = chartArea?.clientWidth ?? Math.max(1100, viewportWidth * 0.7);
@@ -728,7 +732,7 @@
         .attr("class", "interaction-overlay")
         .attr("width", width)
         .attr("height", height);
-      overlay.style("pointer-events", "all");
+      overlay.style("pointer-events", "all").style("touch-action", "none");
 
       const supportsPointerEvents = window.PointerEvent != null;
 

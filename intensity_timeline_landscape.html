@@ -54,8 +54,8 @@
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: calc(88vh - 40px);
-      max-height: calc(88vh - 40px);
+      height: calc(90vh - 40px);
+      max-height: calc(90vh - 40px);
     }
 
     .chart-column {
@@ -77,8 +77,8 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      padding: 16px;
+      gap: 12px;
+      padding: 12px;
       box-sizing: border-box;
     }
 
@@ -201,17 +201,17 @@
 
     .focus-readout {
       flex: 0 0 auto;
-      max-width: 30%;
-      min-width: 220px;
+      max-width: 28%;
+      min-width: 100px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
       background: #ffffff;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       grid-auto-rows: min-content;
       align-content: flex-start;
-      gap: 12px 20px;
+      gap: 12px 12px;
       font-size: 13px;
       overflow-y: auto;
       align-self: stretch;
@@ -427,10 +427,7 @@
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const wrapperHeight = Math.max(
-        200,
-        Math.min(chartWrapper?.clientHeight ?? viewportHeight, viewportHeight * 0.88) - 40
-      );
+      const wrapperHeight = Math.max(200, (chartWrapper?.clientHeight ?? viewportHeight) - 40);
       const columnGap = chartColumn
         ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
         : 0;
@@ -441,18 +438,18 @@
 
       let chartAreaHeight = columnHeight - reservedHeight;
       if (!Number.isFinite(chartAreaHeight) || chartAreaHeight <= 0) {
-        chartAreaHeight = Math.max(260, wrapperHeight * 0.6);
+        chartAreaHeight = wrapperHeight - reservedHeight;
       }
-      chartAreaHeight = Math.max(240, Math.min(chartAreaHeight, viewportHeight * 0.5));
+      chartAreaHeight = Math.max(240, Math.min(chartAreaHeight, wrapperHeight));
 
       if (chartArea) {
         chartArea.style.height = `${chartAreaHeight}px`;
       }
       if (focusReadoutEl) {
-        focusReadoutEl.style.height = `${chartAreaHeight + 32}px`;
+        focusReadoutEl.style.height = `${chartAreaHeight}px`;
       }
 
-      const chartWidth = chartArea?.clientWidth ?? Math.max(1100, viewportWidth * 0.7);
+      const chartWidth = chartArea?.clientWidth ?? Math.max(900, viewportWidth * 0.65);
       const availablePlotWidth = Math.max(600, chartWidth - margin.left - margin.right);
 
       width = availablePlotWidth;

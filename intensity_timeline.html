@@ -177,6 +177,13 @@
       background: linear-gradient(90deg, #2563eb, #facc15, #22c55e, #b91c1c);
     }
 
+    .chart-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
     .work-block {
       opacity: 0.22;
     }
@@ -380,16 +387,16 @@
         }
       }
 
-      let paceSeries = segments
-        .filter((seg) => !seg.isRest && seg.rep_pace != null)
-        .map((seg) => ({
-          time: seg.midTime ?? seg.startTime,
-          value: seg.rep_pace,
-          label: seg.label,
-          rep_avg_hr: seg.rep_avg_hr,
-          duration: seg.endTime - seg.startTime,
-          intensity: seg.intensity,
-        }));
+      const paceSegments = segments.filter((seg) => !seg.isRest && seg.rep_pace != null);
+
+      let paceSeries = paceSegments.map((seg) => ({
+        time: seg.midTime ?? seg.startTime,
+        value: seg.rep_pace,
+        label: seg.label,
+        rep_avg_hr: seg.rep_avg_hr,
+        duration: seg.endTime - seg.startTime,
+        intensity: seg.intensity,
+      }));
 
       if (paceSeries.length) {
         paceSeries = paceSeries.sort((a, b) => a.time - b.time);
@@ -447,11 +454,30 @@
       const chart = d3.select("#chart");
       chart.selectAll("*").remove();
 
+      const pixelRatio = window.devicePixelRatio || 1;
+      const canvasWidth = width + margin.left + margin.right;
+      const canvasHeight = height + margin.top + margin.bottom;
+
+      const canvas = chart
+        .append("canvas")
+        .attr("class", "chart-canvas")
+        .attr("width", canvasWidth * pixelRatio)
+        .attr("height", canvasHeight * pixelRatio)
+        .style("width", `${canvasWidth}px`)
+        .style("height", `${canvasHeight}px`)
+        .style("top", "0px")
+        .style("left", "0px");
+
+      const context = canvas.node()?.getContext("2d");
+
       const rootSvg = chart
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`);
+        .attr("width", canvasWidth)
+        .attr("height", canvasHeight)
+        .attr("viewBox", `0 0 ${canvasWidth} ${canvasHeight}`)
+        .style("position", "absolute")
+        .style("top", "0px")
+        .style("left", "0px");
 
       const svg = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -506,73 +532,6 @@
         .attr("height", height)
         .attr("fill", intensityPalette.rest.color)
         .attr("opacity", 0.2);
-
-      // Draw pace as bars - full width of each segment
-      const paceSegments = segments.filter((seg) => !seg.isRest && seg.rep_pace != null);
-      const paceBars = svg
-        .selectAll(".pace-bar")
-        .data(paceSegments)
-        .enter()
-        .append("rect")
-        .attr("class", "pace-bar")
-        .attr("x", (d) => {
-          const xStart = currentXScale(d.startTime);
-          return isNaN(xStart) ? 0 : xStart;
-        })
-        .attr("y", (d) => paceScale(d.rep_pace))
-        .attr("width", (d) => {
-          const xStart = currentXScale(d.startTime);
-          const xEnd = currentXScale(d.endTime);
-          const barWidth = xEnd - xStart;
-          return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
-        })
-        .attr("height", (d) => height - paceScale(d.rep_pace))
-        .attr("fill", "#91BDCD")
-        .attr("opacity", 0.8);
-
-      const hrPath = svg
-        .append("path")
-        .datum(hrSeries)
-        .attr("class", "line hr-line")
-        .attr(
-          "d",
-          d3
-            .line()
-            .defined((d) => d.value != null)
-            .curve(d3.curveCatmullRom.alpha(0.35))
-            .x((d) => currentXScale(d.time))
-            .y((d) => hrScale(d.value))(hrSeries)
-        );
-
-      const pacePoints = svg
-        .selectAll(".pace-point")
-        .data(paceSeries)
-        .enter()
-        .append("circle")
-        .attr("class", "pace-point")
-        .attr("cx", (d) => currentXScale(d.time))
-        .attr("cy", (d) => paceScale(d.value))
-        .attr("r", 3.5)
-        .attr("fill", "#91BDCD")
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 1.1)
-        .on("pointerenter", (event, datum) => {
-          tooltip
-            .style("display", "block")
-            .html(`
-              <strong>${datum.label}</strong><br/>
-              Pace: ${formatPace(datum.value)}<br/>
-              Avg HR: ${datum.rep_avg_hr ? datum.rep_avg_hr.toFixed(0) : "n/a"} bpm<br/>
-              Duration: ${formatTime(datum.duration)}<br/>
-              Intensity: ${(intensityPalette[datum.intensity] ?? intensityPalette.medium).label}
-            `);
-        })
-        .on("pointermove", (event) => {
-          tooltip
-            .style("left", `${event.pageX + 12}px`)
-            .style("top", `${event.pageY - 12}px`);
-        })
-        .on("pointerleave", () => tooltip.style("display", "none"));
 
       const focusGroup = svg.append("g").attr("class", "focus-group");
       const focusLine = focusGroup
@@ -713,6 +672,67 @@
 
       rootSvg.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
 
+      function drawCanvasContent(scale) {
+        if (!context) {
+          return;
+        }
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.clearRect(0, 0, canvasWidth, canvasHeight);
+        context.translate(margin.left, margin.top);
+
+        // Draw pace bars
+        context.globalAlpha = 0.8;
+        context.fillStyle = "#91BDCD";
+        (segments.filter((seg) => !seg.isRest && seg.rep_pace != null) || []).forEach((seg) => {
+          const xStart = scale(seg.startTime);
+          const xEnd = scale(seg.endTime);
+          const barWidth = Math.max(xEnd - xStart, 1);
+          const barY = paceScale(seg.rep_pace);
+          const barHeight = height - barY;
+          context.fillRect(xStart, barY, barWidth, barHeight);
+        });
+        context.globalAlpha = 1;
+
+        // Draw heart rate line
+        context.lineWidth = 3;
+        context.lineJoin = "round";
+        context.lineCap = "round";
+        context.strokeStyle = "#E45F5D";
+        context.beginPath();
+        let hasStarted = false;
+        hrSeries.forEach((sample) => {
+          if (sample.value == null) {
+            hasStarted = false;
+            return;
+          }
+          const x = scale(sample.time);
+          const y = hrScale(sample.value);
+          if (!hasStarted) {
+            context.moveTo(x, y);
+            hasStarted = true;
+          } else {
+            context.lineTo(x, y);
+          }
+        });
+        context.stroke();
+
+        // Draw pace points
+        context.fillStyle = "#91BDCD";
+        context.strokeStyle = "#ffffff";
+        context.lineWidth = 1.1;
+        paceSeries.forEach((pt) => {
+          if (pt.value == null) {
+            return;
+          }
+          const x = scale(pt.time);
+          const y = paceScale(pt.value);
+          context.beginPath();
+          context.arc(x, y, 3.5, 0, Math.PI * 2);
+          context.fill();
+          context.stroke();
+        });
+      }
+
       function handleFocus(evt, explicitTime = null) {
         if (!overlay?.node()) {
           return;
@@ -798,29 +818,7 @@
           .attr("x", (d) => currentXScale(d.startTime))
           .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1));
 
-        paceBars
-          .attr("x", (d) => {
-            const xStart = currentXScale(d.startTime);
-            return isNaN(xStart) ? 0 : xStart;
-          })
-          .attr("width", (d) => {
-            const xStart = currentXScale(d.startTime);
-            const xEnd = currentXScale(d.endTime);
-            const barWidth = xEnd - xStart;
-            return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
-          });
-
-        pacePoints.attr("cx", (d) => currentXScale(d.time));
-
-        hrPath.attr(
-          "d",
-          d3
-            .line()
-            .defined((d) => d.value != null)
-            .curve(d3.curveCatmullRom.alpha(0.35))
-            .x((d) => currentXScale(d.time))
-            .y((d) => hrScale(d.value))(hrSeries)
-        );
+        drawCanvasContent(currentXScale);
 
         if (lastFocusTime != null) {
           handleFocus(null, lastFocusTime);
@@ -828,6 +826,7 @@
       }
 
       const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
+      drawCanvasContent(currentXScale);
       handleFocus(null, defaultFocusTime);
 
     }

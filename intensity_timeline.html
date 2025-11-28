@@ -447,13 +447,13 @@
       const chart = d3.select("#chart");
       chart.selectAll("*").remove();
 
-      const svg = chart
+      const rootSvg = chart
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
-        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`);
+
+      const svg = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
       const xAxis = svg
         .append("g")
@@ -711,7 +711,7 @@
           applyXScale(currentTransform.rescaleX(baseXScale));
         });
 
-      overlay.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
+      rootSvg.call(zoom).on("dblclick.zoom", null).on("wheel.zoom", null);
 
       function handleFocus(evt, explicitTime = null) {
         if (!overlay?.node()) {

@@ -48,8 +48,8 @@
     .chart-wrapper {
       width: 100%;
       flex: 1;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto auto;
       gap: 16px;
       padding: 16px;
       box-sizing: border-box;
@@ -58,12 +58,11 @@
 
     .chart-area {
       position: relative;
-      flex: 1;
       min-height: 320px;
       border-radius: 14px;
       background: #ffffff;
       border: 1px solid #CFC4DB;
-      overflow: hidden;
+      overflow: visible;
     }
 
     #chart {

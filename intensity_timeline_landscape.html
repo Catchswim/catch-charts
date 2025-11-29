@@ -547,9 +547,12 @@
           }));
 
       if (hrSeries.length) {
-        const first = hrSeries[0];
-        if (first.time > 0) {
-          hrSeries = [{ time: 0, value: first.value }, ...hrSeries];
+        const firstSampleTime = Math.max(0, hrSeries[0]?.time ?? 0);
+        if (firstSampleTime > 0) {
+          hrSeries = hrSeries.map((sample, idx) => ({
+            ...sample,
+            time: idx === 0 ? 0 : Math.max(0, sample.time - firstSampleTime),
+          }));
         }
         const lastBeforeAlignment = hrSeries[hrSeries.length - 1];
         const expectedDuration = segments.length

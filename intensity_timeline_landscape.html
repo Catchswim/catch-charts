@@ -340,12 +340,15 @@
     let latestSessionData = null;
     let viewportHeightListenersAttached = false;
     let pendingViewportHeightFrame = null;
+    let pendingViewportRenderFrame = null;
 
     function applyLandscapeViewportHeight() {
       const viewportHeight =
         window.visualViewport?.height ?? window.innerHeight ?? document.documentElement?.clientHeight ?? 720;
-      const computedHeight = Math.max(320, Math.round(viewportHeight - LANDSCAPE_OFFSET_PX));
+      const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
+      const computedHeight = Math.max(320, Math.round(viewportHeight - viewportOffsetTop - LANDSCAPE_OFFSET_PX));
       document.documentElement.style.setProperty("--landscape-height", `${computedHeight}px`);
+      scheduleLatestDataRender();
     }
 
     function scheduleLandscapeViewportHeightUpdate() {
@@ -355,6 +358,19 @@
       pendingViewportHeightFrame = window.requestAnimationFrame(() => {
         pendingViewportHeightFrame = null;
         applyLandscapeViewportHeight();
+      });
+    }
+
+    function scheduleLatestDataRender() {
+      if (!latestSessionData) {
+        return;
+      }
+      if (pendingViewportRenderFrame != null) {
+        return;
+      }
+      pendingViewportRenderFrame = window.requestAnimationFrame(() => {
+        pendingViewportRenderFrame = null;
+        renderChart(latestSessionData);
       });
     }
 

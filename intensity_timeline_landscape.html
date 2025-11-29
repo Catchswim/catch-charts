@@ -348,6 +348,17 @@
       const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
       const computedHeight = Math.max(320, Math.round(viewportHeight - viewportOffsetTop - LANDSCAPE_OFFSET_PX));
       document.documentElement.style.setProperty("--landscape-height", `${computedHeight}px`);
+      document.documentElement.style.height = `${computedHeight}px`;
+      document.documentElement.style.minHeight = `${computedHeight}px`;
+      if (document.body) {
+        document.body.style.height = `${computedHeight}px`;
+        document.body.style.minHeight = `${computedHeight}px`;
+      }
+      const pageWrapper = document.querySelector(".page-wrapper");
+      if (pageWrapper) {
+        pageWrapper.style.height = `${computedHeight}px`;
+        pageWrapper.style.minHeight = `${computedHeight}px`;
+      }
       scheduleLatestDataRender();
     }
 

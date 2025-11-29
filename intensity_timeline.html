@@ -253,6 +253,7 @@
     // Calculate height dynamically - will be recalculated in renderChart based on actual container
     let height = Math.max(600, window.innerHeight * 0.8);
     const margin = { top: 0, right: 60, bottom: 0, left: 60 };
+    const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
@@ -379,14 +380,36 @@
             }));
 
       if (hrSeries.length) {
-        const first = hrSeries[0];
-        const last = hrSeries[hrSeries.length - 1];
-        if (first.time > 0) {
-          hrSeries = [{ time: 0, value: first.value }, ...hrSeries];
+        const firstSampleTime = Math.max(0, hrSeries[0]?.time ?? 0);
+        if (firstSampleTime > 0) {
+          hrSeries = hrSeries.map((sample, idx) => ({
+            ...sample,
+            time: idx === 0 ? 0 : Math.max(0, sample.time - firstSampleTime),
+          }));
         }
-        const sessionEnd = totalDuration || segments[segments.length - 1]?.endTime || last.time;
-        if (sessionEnd && last.time < sessionEnd) {
-          hrSeries = [...hrSeries, { time: sessionEnd, value: last.value }];
+        const lastBeforeAlignment = hrSeries[hrSeries.length - 1];
+        const expectedDuration = segments.length
+          ? totalDuration
+          : Math.max(totalDuration, lastBeforeAlignment?.time ?? 0);
+        const shouldRescale =
+          segments.length > 0 &&
+          expectedDuration > 0 &&
+          (lastBeforeAlignment?.time ?? 0) > 0;
+        if (shouldRescale) {
+          const durationDelta = Math.abs((lastBeforeAlignment?.time ?? 0) - expectedDuration);
+          const relativeDelta = durationDelta / Math.max(lastBeforeAlignment.time, expectedDuration);
+          if (relativeDelta > DURATION_ALIGNMENT_TOLERANCE) {
+            const scaleFactor = expectedDuration / lastBeforeAlignment.time;
+            const hrCount = hrSeries.length;
+            hrSeries = hrSeries.map((sample, idx) => ({
+              ...sample,
+              time: idx === hrCount - 1 ? expectedDuration : sample.time * scaleFactor,
+            }));
+          }
+        }
+        const latestPoint = hrSeries[hrSeries.length - 1];
+        if (expectedDuration && latestPoint.time < expectedDuration) {
+          hrSeries = [...hrSeries, { time: expectedDuration, value: latestPoint.value }];
         }
       }
 

@@ -12,18 +12,18 @@
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #004448;
       background: #F6FDFF;
-      --landscape-height: calc(100vh - 35px);
+      --landscape-height: calc(50vh - 35px);
     }
 
-    @supports (height: 100dvh) {
+    @supports (height: 50dvh) {
       :root {
         --landscape-height: calc(100dvh - 35px);
       }
     }
 
-    @supports (height: 100svh) {
+    @supports (height: 50svh) {
       :root {
-        --landscape-height: min(calc(100svh - 35px), calc(100dvh - 35px));
+        --landscape-height: min(calc(50svh - 35px), calc(100dvh - 35px));
       }
     }
 

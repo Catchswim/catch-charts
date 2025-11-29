@@ -341,6 +341,7 @@
     let viewportHeightListenersAttached = false;
     let pendingViewportHeightFrame = null;
     let pendingViewportRenderFrame = null;
+    let layoutOverflowCompensation = 0;
 
     function applyLandscapeViewportHeight() {
       const viewportHeight =
@@ -391,30 +392,25 @@
       }
     }
 
-    function clampLayoutToViewport(maxIterations = 3) {
+    function clampLayoutToViewport(currentChartAreaHeight) {
       const root = document.documentElement;
       if (!root) {
         return false;
       }
-      let adjusted = false;
-      let iterations = 0;
-      let currentHeight = parseFloat(getComputedStyle(root).getPropertyValue("--landscape-height"));
-      if (!Number.isFinite(currentHeight)) {
-        currentHeight = root.clientHeight;
+      const overflow = Math.round(root.scrollHeight - root.clientHeight);
+      if (overflow > 1 && currentChartAreaHeight > 240) {
+        const maxAdjustable = Math.max(0, currentChartAreaHeight - 240);
+        if (maxAdjustable <= 0) {
+          return false;
+        }
+        layoutOverflowCompensation = Math.min(
+          maxAdjustable,
+          Math.max(0, (layoutOverflowCompensation || 0) + overflow + 1)
+        );
+        return true;
       }
-      while (
-        iterations < maxIterations &&
-        root.scrollHeight > root.clientHeight + 1 &&
-        Number.isFinite(currentHeight) &&
-        currentHeight > 320
-      ) {
-        const overflow = root.scrollHeight - root.clientHeight;
-        currentHeight = Math.max(320, currentHeight - overflow - 2);
-        applyRootHeight(currentHeight);
-        adjusted = true;
-        iterations += 1;
-      }
-      return adjusted;
+      layoutOverflowCompensation = 0;
+      return false;
     }
 
     function ensureViewportHeightListeners() {
@@ -492,6 +488,7 @@
       try {
         const payload = await fetchSession(sessionId, token);
         latestSessionData = payload;
+        layoutOverflowCompensation = 0;
         renderChart(payload);
         if (!window.__timelineLandscapeResizeAttached) {
           window.__timelineLandscapeResizeAttached = true;
@@ -533,6 +530,11 @@
       const legendHeight = legendEl?.offsetHeight ?? 0;
       const reservedHeight = legendHeight + columnGap;
       let chartAreaHeight = innerWrapperHeight - reservedHeight;
+      const uncompensatedHeight = Math.max(240, chartAreaHeight);
+      if (layoutOverflowCompensation > 0) {
+        const maxAllowedReduction = Math.max(0, uncompensatedHeight - 240);
+        chartAreaHeight -= Math.min(layoutOverflowCompensation, maxAllowedReduction);
+      }
       chartAreaHeight = Math.max(240, chartAreaHeight);
 
       if (chartArea) {
@@ -558,6 +560,7 @@
       height = Math.max(200, chartAreaHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;
+      const sessionReferenceSeconds = getSessionReferenceSeconds(providerDetail);
       const segments = [];
       let cumulative = 0;
 
@@ -578,8 +581,23 @@
         });
       });
 
-      const totalDuration = cumulative || data.summary?.total_duration || 0;
-      const heartRateSeries = buildHeartRateSeries(providerDetail, segments, totalDuration);
+      applyActualSegmentTimings(segments, providerDetail, sessionReferenceSeconds);
+
+      let totalDuration = cumulative || data.summary?.total_duration || 0;
+      const timelineEnd = segments[segments.length - 1]?.endTime;
+      if (Number.isFinite(timelineEnd) && timelineEnd > 0) {
+        totalDuration = timelineEnd;
+      }
+
+      const clipRange = [
+        segments[0]?.startTime ?? 0,
+        segments[segments.length - 1]?.endTime ?? totalDuration,
+      ];
+
+      const heartRateSeries = buildHeartRateSeries(providerDetail, segments, totalDuration, {
+        referenceSeconds: sessionReferenceSeconds,
+        clipRange,
+      });
       let hrSeries = heartRateSeries.length
         ? heartRateSeries
         : segments
@@ -590,13 +608,6 @@
           }));
 
       if (hrSeries.length) {
-        const firstSampleTime = Math.max(0, hrSeries[0]?.time ?? 0);
-        if (firstSampleTime > 0) {
-          hrSeries = hrSeries.map((sample, idx) => ({
-            ...sample,
-            time: idx === 0 ? 0 : Math.max(0, sample.time - firstSampleTime),
-          }));
-        }
         const lastBeforeAlignment = hrSeries[hrSeries.length - 1];
         const expectedDuration = segments.length
           ? totalDuration
@@ -1054,7 +1065,7 @@
       const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
       handleFocus(null, defaultFocusTime);
 
-      if (!options.suppressClamp && clampLayoutToViewport()) {
+      if (!options.suppressClamp && clampLayoutToViewport(chartAreaHeight)) {
         window.requestAnimationFrame(() => {
           if (latestSessionData) {
             renderChart(latestSessionData, { suppressClamp: true });
@@ -1104,7 +1115,7 @@
       return "medium";
     }
 
-    function buildHeartRateSeries(providerDetail, segments, sessionDuration) {
+    function buildHeartRateSeries(providerDetail, segments, sessionDuration, options = {}) {
       if (!providerDetail) {
         return [];
       }
@@ -1112,8 +1123,9 @@
       if (!samples.length) {
         return [];
       }
-      const pauseIntervals = collectPauseIntervals(providerDetail);
-      return trimHeartRateSamples(samples, referenceSeconds, pauseIntervals);
+      const referenceOverride = Number.isFinite(options.referenceSeconds) ? options.referenceSeconds : referenceSeconds;
+      const clipRange = Array.isArray(options.clipRange) ? options.clipRange : null;
+      return projectHeartRateSamples(samples, referenceOverride, clipRange);
     }
 
     function findNearestSample(series, target) {
@@ -1258,110 +1270,75 @@
       return { samples: normalized, referenceSeconds };
     }
 
-    function collectPauseIntervals(providerDetail) {
-      if (!providerDetail) {
-        return [];
-      }
-      const sources = [];
-      const pushSource = (maybeList) => {
-        if (Array.isArray(maybeList)) {
-          sources.push(...maybeList);
-        }
-      };
-      pushSource(providerDetail.events);
-      pushSource(providerDetail.bridgeDetail?.events);
-      pushSource(providerDetail.workoutEvents);
-      if (Array.isArray(providerDetail.workoutActivities)) {
-        providerDetail.workoutActivities.forEach((activity) => {
-          pushSource(activity?.workoutEvents);
-        });
-      }
-      const normalizedEvents = sources
-        .map((event) => {
-          const type = typeof event?.type === "string" ? event.type.toLowerCase() : "";
-          const timestampValue = event?.timestamp ?? event?.start ?? event?.end ?? event?.time ?? null;
-          const timestamp = parseEventTimestamp(timestampValue);
-          if (!type || timestamp == null) {
-            return null;
-          }
-          return { type, timestamp };
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.timestamp - b.timestamp);
-
-      const intervals = [];
-      let pauseStart = null;
-      normalizedEvents.forEach((event) => {
-        const isPause = event.type.includes("pause") && !event.type.includes("resume");
-        const isResume = event.type.includes("resume");
-        if (isPause && pauseStart == null) {
-          pauseStart = event.timestamp;
-        } else if (isResume && pauseStart != null) {
-          if (event.timestamp > pauseStart) {
-            intervals.push({ start: pauseStart, end: event.timestamp });
-          }
-          pauseStart = null;
-        }
-      });
-      return intervals;
-    }
-
-    function normalizePauseIntervals(intervals) {
-      if (!Array.isArray(intervals) || !intervals.length) {
-        return [];
-      }
-      const normalized = intervals
-        .map((interval) => {
-          const start = parseEventTimestamp(interval?.start);
-          const end = parseEventTimestamp(interval?.end);
-          if (start == null || end == null || end <= start) {
-            return null;
-          }
-          return { start, end };
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.start - b.start);
-      if (!normalized.length) {
-        return [];
-      }
-      const merged = [normalized[0]];
-      for (let i = 1; i < normalized.length; i += 1) {
-        const current = normalized[i];
-        const last = merged[merged.length - 1];
-        if (current.start <= last.end) {
-          last.end = Math.max(last.end, current.end);
-        } else {
-          merged.push(current);
-        }
-      }
-      return merged;
-    }
-
-    function trimHeartRateSamples(samples, referenceSeconds, pauseIntervals) {
+    function projectHeartRateSamples(samples, referenceSeconds, clipRange) {
       if (!samples.length) {
         return [];
       }
       const baseline = Number.isFinite(referenceSeconds) ? referenceSeconds : samples[0].epochSeconds;
-      const normalizedPauses = normalizePauseIntervals(pauseIntervals);
-      let pauseIdx = 0;
-      let accumulatedPause = 0;
-      const trimmed = [];
-      samples.forEach((sample) => {
-        const timestamp = sample.epochSeconds;
-        while (pauseIdx < normalizedPauses.length && timestamp >= normalizedPauses[pauseIdx].end) {
-          accumulatedPause += normalizedPauses[pauseIdx].end - normalizedPauses[pauseIdx].start;
-          pauseIdx += 1;
-        }
-        const activePause = normalizedPauses[pauseIdx];
-        if (activePause && timestamp >= activePause.start && timestamp < activePause.end) {
+      const [clipStart, clipEnd] = Array.isArray(clipRange) ? clipRange : [null, null];
+      const epsilon = 0.0001;
+      return samples
+        .map((sample) => ({
+          time: Math.max(0, sample.epochSeconds - baseline),
+          value: sample.value,
+        }))
+        .filter((sample) => {
+          const withinStart = clipStart == null || sample.time + epsilon >= clipStart;
+          const withinEnd = clipEnd == null || sample.time - epsilon <= clipEnd;
+          return withinStart && withinEnd;
+        });
+    }
+
+    function applyActualSegmentTimings(segments, providerDetail, referenceSeconds) {
+      if (!Array.isArray(segments) || !segments.length) {
+        return;
+      }
+      const activities = providerDetail?.workoutActivities;
+      if (!Array.isArray(activities) || !activities.length) {
+        return;
+      }
+      const baseline = Number.isFinite(referenceSeconds) ? referenceSeconds : getSessionReferenceSeconds(providerDetail);
+      if (!Number.isFinite(baseline)) {
+        return;
+      }
+      segments.forEach((segment, index) => {
+        const activity = activities[index];
+        if (!activity) {
           return;
         }
-        const relativeTime = timestamp - baseline - accumulatedPause;
-        if (relativeTime >= -0.5) {
-          trimmed.push({ time: Math.max(0, relativeTime), value: sample.value });
+        const startEpoch = parseEventTimestamp(activity.start);
+        const endEpoch = parseEventTimestamp(activity.end);
+        if (!Number.isFinite(startEpoch) || !Number.isFinite(endEpoch)) {
+          return;
         }
+        const startTime = convertTimestampToElapsedSeconds(startEpoch, baseline);
+        const endTime = convertTimestampToElapsedSeconds(endEpoch, baseline);
+        if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime < startTime) {
+          return;
+        }
+        segment.startTime = startTime;
+        segment.endTime = endTime;
+        segment.midTime = startTime + (endTime - startTime) / 2;
       });
-      return trimmed;
+    }
+
+    function convertTimestampToElapsedSeconds(timestampSeconds, baselineSeconds) {
+      if (!Number.isFinite(timestampSeconds) || !Number.isFinite(baselineSeconds)) {
+        return null;
+      }
+      return Math.max(0, timestampSeconds - baselineSeconds);
+    }
+
+    function getSessionReferenceSeconds(providerDetail) {
+      if (!providerDetail) {
+        return null;
+      }
+      return (
+        parseEventTimestamp(providerDetail.startDate) ||
+        parseEventTimestamp(providerDetail.bridgeDetail?.startDate) ||
+        parseEventTimestamp(providerDetail.workoutActivities?.[0]?.start) ||
+        null
+      );
     }
 
     function parseEventTimestamp(value) {

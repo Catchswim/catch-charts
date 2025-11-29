@@ -890,62 +890,12 @@
       if (!providerDetail) {
         return [];
       }
-      const bridgeSamples = providerDetail.bridgeDetail?.heartRate?.samples;
-      if (Array.isArray(bridgeSamples) && bridgeSamples.length) {
-        const reference = new Date(
-          providerDetail.bridgeDetail?.startDate ||
-            providerDetail.startDate ||
-            bridgeSamples[0]?.timestamp ||
-            bridgeSamples[0]?.startDate ||
-            Date.now()
-        ).getTime();
-        return bridgeSamples
-          .filter((sample) => sample?.value != null)
-          .map((sample) => ({
-            time: Math.max(
-              0,
-              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
-            ),
-            value: sample.value,
-          }))
-          .sort((a, b) => a.time - b.time);
+      const { samples, referenceSeconds } = extractHeartRateSamples(providerDetail);
+      if (!samples.length) {
+        return [];
       }
-
-      if (providerDetail.heartRate?.samples?.length) {
-        const samples = providerDetail.heartRate.samples;
-        const reference =
-          new Date(providerDetail.startDate || samples[0]?.timestamp || samples[0]?.startDate || Date.now()).getTime();
-        return samples
-          .filter((sample) => sample.value != null)
-          .map((sample) => ({
-            time: Math.max(
-              0,
-              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
-            ),
-            value: sample.value,
-          }))
-          .sort((a, b) => a.time - b.time);
-      }
-
-      if (Array.isArray(providerDetail.records)) {
-        const timestampEntry = providerDetail.records.find((rec) => rec.timestamp || rec.startTime);
-        const reference = timestampEntry ? new Date(timestampEntry.timestamp || timestampEntry.startTime).getTime() : null;
-        if (!reference) {
-          return [];
-        }
-        return providerDetail.records
-          .filter((rec) => typeof rec.heartRate === "number")
-          .map((rec) => ({
-            time: Math.max(
-              0,
-              (new Date(rec.timestamp || rec.startTime).getTime() - reference) / 1000
-            ),
-            value: rec.heartRate,
-          }))
-          .sort((a, b) => a.time - b.time);
-      }
-
-      return [];
+      const pauseIntervals = collectPauseIntervals(providerDetail);
+      return trimHeartRateSamples(samples, referenceSeconds, pauseIntervals);
     }
 
     function findNearestSample(series, target) {
@@ -1012,6 +962,193 @@
           <div class="value">${segmentLabel}</div>
         </div>
       `;
+    }
+
+    function extractHeartRateSamples(providerDetail) {
+      if (!providerDetail) {
+        return { samples: [], referenceSeconds: null };
+      }
+      const bridgeSamples = providerDetail.bridgeDetail?.heartRate?.samples;
+      if (Array.isArray(bridgeSamples) && bridgeSamples.length) {
+        return normalizeHeartRateSamples(
+          bridgeSamples,
+          providerDetail.bridgeDetail?.startDate ||
+            providerDetail.startDate ||
+            bridgeSamples[0]?.timestamp ||
+            bridgeSamples[0]?.startDate ||
+            bridgeSamples[0]?.endTimestamp,
+          (sample) => sample.value
+        );
+      }
+
+      const directSamples = providerDetail.heartRate?.samples;
+      if (Array.isArray(directSamples) && directSamples.length) {
+        return normalizeHeartRateSamples(
+          directSamples,
+          providerDetail.startDate || directSamples[0]?.timestamp || directSamples[0]?.startDate,
+          (sample) => sample.value
+        );
+      }
+
+      if (Array.isArray(providerDetail.records)) {
+        const referenceCandidate =
+          providerDetail.startDate ||
+          providerDetail.records.find((rec) => rec?.timestamp || rec?.startTime)?.timestamp ||
+          providerDetail.records.find((rec) => rec?.timestamp || rec?.startTime)?.startTime;
+        return normalizeHeartRateSamples(
+          providerDetail.records,
+          referenceCandidate,
+          (sample) => sample.heartRate,
+          ["timestamp", "startTime"]
+        );
+      }
+
+      return { samples: [], referenceSeconds: null };
+    }
+
+    function normalizeHeartRateSamples(rawSamples, fallbackReference, valueAccessor, timeFieldOrder = ["timestamp", "startDate", "startTime", "endTimestamp"]) {
+      if (!Array.isArray(rawSamples) || !rawSamples.length || typeof valueAccessor !== "function") {
+        return { samples: [], referenceSeconds: parseEventTimestamp(fallbackReference) ?? null };
+      }
+      const normalized = rawSamples
+        .map((sample) => {
+          const value = valueAccessor(sample);
+          if (value == null || Number.isNaN(value)) {
+            return null;
+          }
+          const fieldName = timeFieldOrder.find((field) => sample?.[field] != null);
+          const epochSeconds = parseEventTimestamp(fieldName ? sample[fieldName] : null);
+          if (epochSeconds == null) {
+            return null;
+          }
+          return { epochSeconds, value };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.epochSeconds - b.epochSeconds);
+      const referenceSeconds = parseEventTimestamp(fallbackReference) ?? normalized[0]?.epochSeconds ?? null;
+      return { samples: normalized, referenceSeconds };
+    }
+
+    function collectPauseIntervals(providerDetail) {
+      if (!providerDetail) {
+        return [];
+      }
+      const sources = [];
+      const pushSource = (maybeList) => {
+        if (Array.isArray(maybeList)) {
+          sources.push(...maybeList);
+        }
+      };
+      pushSource(providerDetail.events);
+      pushSource(providerDetail.bridgeDetail?.events);
+      pushSource(providerDetail.workoutEvents);
+      if (Array.isArray(providerDetail.workoutActivities)) {
+        providerDetail.workoutActivities.forEach((activity) => {
+          pushSource(activity?.workoutEvents);
+        });
+      }
+      const normalizedEvents = sources
+        .map((event) => {
+          const type = typeof event?.type === "string" ? event.type.toLowerCase() : "";
+          const timestampValue = event?.timestamp ?? event?.start ?? event?.end ?? event?.time ?? null;
+          const timestamp = parseEventTimestamp(timestampValue);
+          if (!type || timestamp == null) {
+            return null;
+          }
+          return { type, timestamp };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      const intervals = [];
+      let pauseStart = null;
+      normalizedEvents.forEach((event) => {
+        const isPause = event.type.includes("pause") && !event.type.includes("resume");
+        const isResume = event.type.includes("resume");
+        if (isPause && pauseStart == null) {
+          pauseStart = event.timestamp;
+        } else if (isResume && pauseStart != null) {
+          if (event.timestamp > pauseStart) {
+            intervals.push({ start: pauseStart, end: event.timestamp });
+          }
+          pauseStart = null;
+        }
+      });
+      return intervals;
+    }
+
+    function normalizePauseIntervals(intervals) {
+      if (!Array.isArray(intervals) || !intervals.length) {
+        return [];
+      }
+      const normalized = intervals
+        .map((interval) => {
+          const start = parseEventTimestamp(interval?.start);
+          const end = parseEventTimestamp(interval?.end);
+          if (start == null || end == null || end <= start) {
+            return null;
+          }
+          return { start, end };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.start - b.start);
+      if (!normalized.length) {
+        return [];
+      }
+      const merged = [normalized[0]];
+      for (let i = 1; i < normalized.length; i += 1) {
+        const current = normalized[i];
+        const last = merged[merged.length - 1];
+        if (current.start <= last.end) {
+          last.end = Math.max(last.end, current.end);
+        } else {
+          merged.push(current);
+        }
+      }
+      return merged;
+    }
+
+    function trimHeartRateSamples(samples, referenceSeconds, pauseIntervals) {
+      if (!samples.length) {
+        return [];
+      }
+      const baseline = Number.isFinite(referenceSeconds) ? referenceSeconds : samples[0].epochSeconds;
+      const normalizedPauses = normalizePauseIntervals(pauseIntervals);
+      let pauseIdx = 0;
+      let accumulatedPause = 0;
+      const trimmed = [];
+      samples.forEach((sample) => {
+        const timestamp = sample.epochSeconds;
+        while (pauseIdx < normalizedPauses.length && timestamp >= normalizedPauses[pauseIdx].end) {
+          accumulatedPause += normalizedPauses[pauseIdx].end - normalizedPauses[pauseIdx].start;
+          pauseIdx += 1;
+        }
+        const activePause = normalizedPauses[pauseIdx];
+        if (activePause && timestamp >= activePause.start && timestamp < activePause.end) {
+          return;
+        }
+        const relativeTime = timestamp - baseline - accumulatedPause;
+        if (relativeTime >= -0.5) {
+          trimmed.push({ time: Math.max(0, relativeTime), value: sample.value });
+        }
+      });
+      return trimmed;
+    }
+
+    function parseEventTimestamp(value) {
+      if (value == null) {
+        return null;
+      }
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value > 1e12 ? value / 1000 : value;
+      }
+      if (typeof value === "string") {
+        const parsed = Date.parse(value);
+        if (Number.isFinite(parsed)) {
+          return parsed / 1000;
+        }
+      }
+      return null;
     }
   </script>
 </body>

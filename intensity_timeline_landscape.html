@@ -323,6 +323,7 @@
     let width = 1400;
     let height = 720;
     const margin = { top: 8, right: 85, bottom: 16, left: 60 };
+    const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
       rest: { label: "Rest", color: "#E5E5E5" },
@@ -331,7 +332,10 @@
       fast: { label: "Fast", color: "#22c55e" },
       max: { label: "Max", color: "#b91c1c" },
     };
-    const LANDSCAPE_OFFSET_PX = 35;
+    const BASE_LANDSCAPE_OFFSET_PX = 35;
+    const ANDROID_WEBVIEW_HEADER_PX = 35;
+    const isAndroidDevice = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
+    const LANDSCAPE_OFFSET_PX = BASE_LANDSCAPE_OFFSET_PX + (isAndroidDevice ? ANDROID_WEBVIEW_HEADER_PX : 0);
 
     let latestSessionData = null;
     let viewportHeightListenersAttached = false;
@@ -528,13 +532,32 @@
 
       if (hrSeries.length) {
         const first = hrSeries[0];
-        const last = hrSeries[hrSeries.length - 1];
         if (first.time > 0) {
           hrSeries = [{ time: 0, value: first.value }, ...hrSeries];
         }
-        const sessionEnd = totalDuration || segments[segments.length - 1]?.endTime || last.time;
-        if (sessionEnd && last.time < sessionEnd) {
-          hrSeries = [...hrSeries, { time: sessionEnd, value: last.value }];
+        const lastBeforeAlignment = hrSeries[hrSeries.length - 1];
+        const expectedDuration = segments.length
+          ? totalDuration
+          : Math.max(totalDuration, lastBeforeAlignment?.time ?? 0);
+        const shouldRescale =
+          segments.length > 0 &&
+          expectedDuration > 0 &&
+          (lastBeforeAlignment?.time ?? 0) > 0;
+        if (shouldRescale) {
+          const durationDelta = Math.abs((lastBeforeAlignment?.time ?? 0) - expectedDuration);
+          const relativeDelta = durationDelta / Math.max(lastBeforeAlignment.time, expectedDuration);
+          if (relativeDelta > DURATION_ALIGNMENT_TOLERANCE) {
+            const scaleFactor = expectedDuration / lastBeforeAlignment.time;
+            const hrCount = hrSeries.length;
+            hrSeries = hrSeries.map((sample, idx) => ({
+              ...sample,
+              time: idx === hrCount - 1 ? expectedDuration : sample.time * scaleFactor,
+            }));
+          }
+        }
+        const latestPoint = hrSeries[hrSeries.length - 1];
+        if (expectedDuration && latestPoint.time < expectedDuration) {
+          hrSeries = [...hrSeries, { time: expectedDuration, value: latestPoint.value }];
         }
       }
 

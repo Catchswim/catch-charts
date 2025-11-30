@@ -101,7 +101,7 @@
       width: 100%;
       flex: 1;
       display: flex;
-      align-items: stretch;
+      align-items: flex-start;
       justify-content: center;
       gap: 10px;
       padding: 0 10px 10px;
@@ -384,7 +384,7 @@
     const readoutEl = document.getElementById("focus-readout");
     let width = 1400;
     let height = 720;
-    const margin = { top: 12, right: 85, bottom: 8, left: 60 };
+    const margin = { top: 12, right: 85, bottom: 8, left: 65 };
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const urlParams = new URLSearchParams(window.location.search);
@@ -753,10 +753,9 @@
         existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
       if (chartWrapper) {
-        const wrapperHeightPx = `${targetColumnHeight + wrapperPaddingTop + wrapperPaddingBottom}px`;
-        chartWrapper.style.minHeight = wrapperHeightPx;
-        chartWrapper.style.height = wrapperHeightPx;
-        chartWrapper.style.maxHeight = wrapperHeightPx;
+        chartWrapper.style.removeProperty("height");
+        chartWrapper.style.removeProperty("min-height");
+        chartWrapper.style.removeProperty("max-height");
       }
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");

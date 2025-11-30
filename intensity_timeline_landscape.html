@@ -9,7 +9,7 @@
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
 
     :root {
-      --background-color: #FFFFFF;
+      --background-color: #f6fdff;
       --body-background-color: #FFFFFF;
       --text-color: #004448;
       --muted-text-color: rgba(0, 68, 72, 0.75);
@@ -610,13 +610,13 @@
     function renderChart(data, options = {}) {
       resetReadout();
 
-    const chartContainer = document.getElementById("chart");
-    const chartAreaInner = chartContainer?.parentElement;
-    const chartAreaCard = chartAreaInner?.parentElement;
-    const chartWrapper = document.querySelector(".chart-wrapper");
-    const chartColumn = document.querySelector(".chart-column");
-    const legendEl = document.querySelector(".legend");
-    const focusReadoutEl = document.getElementById("focus-readout");
+      const chartContainer = document.getElementById("chart");
+      const chartAreaInner = chartContainer?.parentElement;
+      const chartAreaCard = chartAreaInner?.parentElement;
+      const chartWrapper = document.querySelector(".chart-wrapper");
+      const chartColumn = document.querySelector(".chart-column");
+      const legendEl = document.querySelector(".legend");
+      const focusReadoutEl = document.getElementById("focus-readout");
 
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
@@ -631,17 +631,25 @@
         : 0;
       const legendHeight = legendEl?.offsetHeight ?? 0;
       const reservedHeight = legendHeight + columnGap;
-      let chartAreaHeight = innerWrapperHeight - reservedHeight;
-      const uncompensatedHeight = Math.max(240, chartAreaHeight);
+      let chartColumnHeight = innerWrapperHeight;
+      const uncompensatedHeight = Math.max(240, chartColumnHeight);
       if (layoutOverflowCompensation > 0) {
         const maxAllowedReduction = Math.max(0, uncompensatedHeight - 240);
-        chartAreaHeight -= Math.min(layoutOverflowCompensation, maxAllowedReduction);
+        chartColumnHeight -= Math.min(layoutOverflowCompensation, maxAllowedReduction);
       }
-      chartAreaHeight = Math.max(240, chartAreaHeight);
-
-    if (chartAreaCard) {
-      chartAreaCard.style.height = `${chartAreaHeight}px`;
-    }
+      chartColumnHeight = Math.max(240, chartColumnHeight);
+      const targetInnerHeight = Math.max(0, chartColumnHeight - reservedHeight);
+      const targetColumnHeight = targetInnerHeight + reservedHeight;
+      if (chartAreaCard) {
+        chartAreaCard.style.removeProperty("height");
+        chartAreaCard.style.minHeight = `${targetColumnHeight}px`;
+      }
+      if (chartAreaInner) {
+        const innerHeightPx = `${targetInnerHeight}px`;
+        chartAreaInner.style.minHeight = innerHeightPx;
+        chartAreaInner.style.height = innerHeightPx;
+        chartAreaInner.style.maxHeight = innerHeightPx;
+      }
       if (focusReadoutEl) {
         const applyReadoutHeight = (value) => {
           const safeHeight = Math.max(240, Math.min(value, innerWrapperHeight));
@@ -649,20 +657,19 @@
           focusReadoutEl.style.height = `${safeHeight}px`;
           focusReadoutEl.style.maxHeight = `${safeHeight}px`;
         };
-        applyReadoutHeight(chartAreaHeight);
+        applyReadoutHeight(targetColumnHeight);
         window.requestAnimationFrame(() => {
-          const recalculatedHeight = chartColumn?.clientHeight ?? chartAreaHeight;
+          const recalculatedHeight = chartColumn?.clientHeight ?? targetColumnHeight;
           applyReadoutHeight(recalculatedHeight);
         });
       }
 
-    const chartWidth = chartAreaInner?.clientWidth ?? Math.max(900, viewportWidth * 0.65);
-    const availablePlotWidth = Math.max(600, chartWidth - margin.left - margin.right);
-    const chartInnerHeight =
-      chartAreaInner?.clientHeight ?? Math.max(200, chartAreaHeight - (legendHeight + columnGap));
+      const chartWidth = chartAreaInner?.clientWidth ?? Math.max(900, viewportWidth * 0.65);
+      const chartInnerHeight = chartAreaInner?.clientHeight ?? targetInnerHeight;
+      const availablePlotWidth = Math.max(600, chartWidth - margin.left - margin.right);
 
-    width = availablePlotWidth;
-    height = Math.max(200, chartInnerHeight - margin.top - margin.bottom);
+      width = availablePlotWidth;
+      height = Math.max(200, chartInnerHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;
       const sessionReferenceSeconds = getSessionReferenceSeconds(providerDetail);
@@ -1169,7 +1176,7 @@
       const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
       handleFocus(null, defaultFocusTime);
 
-    if (!options.suppressClamp && clampLayoutToViewport(chartAreaHeight, chartWrapper)) {
+    if (!options.suppressClamp && clampLayoutToViewport(chartColumnHeight, chartWrapper)) {
         window.requestAnimationFrame(() => {
           if (latestSessionData) {
             renderChart(latestSessionData, { suppressClamp: true });

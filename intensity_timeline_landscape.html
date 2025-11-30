@@ -118,7 +118,7 @@
       flex-direction: column;
       gap: 8px;
       min-height: 0;
-      justify-content: center;
+      justify-content: flex-start;
     }
 
     .chart-area {
@@ -746,7 +746,8 @@
         existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
       if (chartWrapper) {
-        const wrapperHeightPx = `${targetColumnHeight}px`;
+        const wrapperHeightWithPadding = targetColumnHeight + wrapperPaddingTop + wrapperPaddingBottom;
+        const wrapperHeightPx = `${wrapperHeightWithPadding}px`;
         chartWrapper.style.minHeight = wrapperHeightPx;
         chartWrapper.style.height = wrapperHeightPx;
         chartWrapper.style.maxHeight = wrapperHeightPx;

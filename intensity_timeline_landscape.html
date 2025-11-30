@@ -757,8 +757,8 @@
       if (chartColumn) {
         const columnHeightPx = `${targetColumnHeight}px`;
         chartColumn.style.minHeight = columnHeightPx;
-        chartColumn.style.height = columnHeightPx;
-        chartColumn.style.maxHeight = columnHeightPx;
+        chartColumn.style.removeProperty("height");
+        chartColumn.style.removeProperty("max-height");
       }
       if (focusReadoutEl) {
         const applyReadoutHeight = (value, reason = "requested") => {

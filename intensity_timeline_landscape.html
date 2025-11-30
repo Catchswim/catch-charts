@@ -742,6 +742,7 @@
         targetInnerHeight,
         targetColumnHeight,
         layoutOverflowCompensation,
+        existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");
@@ -752,6 +753,12 @@
         chartAreaInner.style.minHeight = innerHeightPx;
         chartAreaInner.style.height = innerHeightPx;
         chartAreaInner.style.maxHeight = innerHeightPx;
+      }
+      if (chartColumn) {
+        const columnHeightPx = `${targetColumnHeight}px`;
+        chartColumn.style.minHeight = columnHeightPx;
+        chartColumn.style.height = columnHeightPx;
+        chartColumn.style.maxHeight = columnHeightPx;
       }
       if (focusReadoutEl) {
         const applyReadoutHeight = (value, reason = "requested") => {

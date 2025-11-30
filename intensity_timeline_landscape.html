@@ -10,7 +10,7 @@
 
     :root {
       --background-color: #f6fdff;
-      --body-background-color: #FFFFFF;
+      --body-background-color: #f6fdff;
       --text-color: #004448;
       --muted-text-color: rgba(0, 68, 72, 0.75);
       --surface-color: #ffffff;
@@ -754,21 +754,25 @@
         chartAreaInner.style.maxHeight = innerHeightPx;
       }
       if (focusReadoutEl) {
-        const applyReadoutHeight = (value) => {
-          const safeHeight = Math.max(240, Math.min(value, innerWrapperHeight));
+        const applyReadoutHeight = (value, reason = "requested") => {
+          const columnTarget = chartColumn?.clientHeight ?? targetColumnHeight;
+          const safeHeight = Math.max(240, Math.min(value, columnTarget));
           focusReadoutEl.style.minHeight = `${safeHeight}px`;
           focusReadoutEl.style.height = `${safeHeight}px`;
           focusReadoutEl.style.maxHeight = `${safeHeight}px`;
+          logLayoutDebug("readout height applied", {
+            reason,
+            requestedHeight: value,
+            applied: safeHeight,
+            columnClientHeight: chartColumn?.clientHeight ?? null,
+            targetColumnHeight,
+            innerWrapperHeight,
+          });
         };
         applyReadoutHeight(targetColumnHeight);
         window.requestAnimationFrame(() => {
           const recalculatedHeight = chartColumn?.clientHeight ?? targetColumnHeight;
-          applyReadoutHeight(recalculatedHeight);
-          logLayoutDebug("readout height applied", {
-            requestedHeight: targetColumnHeight,
-            recalculatedHeight,
-            columnClientHeight: chartColumn?.clientHeight ?? null,
-          });
+          applyReadoutHeight(recalculatedHeight, "recalculated");
         });
       }
 

@@ -77,8 +77,8 @@
       min-height: var(--landscape-height);
       height: var(--landscape-height);
       background: var(--body-background-color);
-      align-items: center;
-      justify-content: center;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
 
     .page-wrapper {
@@ -93,8 +93,8 @@
       display: flex;
       flex-direction: column;
       min-height: var(--landscape-height);
-      height: var(--landscape-height);
-      justify-content: center;
+      height: auto;
+      justify-content: flex-start;
     }
 
     .chart-wrapper {
@@ -746,11 +746,9 @@
         existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
       if (chartWrapper) {
-        const wrapperHeightWithPadding = targetColumnHeight + wrapperPaddingTop + wrapperPaddingBottom;
-        const wrapperHeightPx = `${wrapperHeightWithPadding}px`;
-        chartWrapper.style.minHeight = wrapperHeightPx;
-        chartWrapper.style.height = wrapperHeightPx;
-        chartWrapper.style.maxHeight = wrapperHeightPx;
+        chartWrapper.style.removeProperty("height");
+        chartWrapper.style.removeProperty("min-height");
+        chartWrapper.style.removeProperty("max-height");
       }
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");

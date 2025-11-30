@@ -32,7 +32,7 @@
 
     :root.dark-mode {
       --background-color: #151820;
-      --body-background-color: #151820;
+      --body-background-color: #12151c;
       --text-color: #f6fdff;
       --muted-text-color: rgba(229, 251, 252, 0.75);
       --surface-color: #151820;
@@ -119,11 +119,8 @@
       flex-direction: column;
       gap: 6px;
       min-height: 0;
-      justify-content: flex-start;
+      justify-content: space-between;
       height: 100%;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
       padding-bottom: 10px;
     }
 
@@ -209,6 +206,7 @@
       flex-wrap: wrap;
       margin: 0 4px 2px 4px;
       line-height: 1.1;
+      margin-top: auto;
     }
 
     .legend-dot {
@@ -756,8 +754,8 @@
         existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
       const columnHeightPx = `${targetColumnHeight}px`;
-      if (chartWrapper) {
-        chartWrapper.style.setProperty("--column-height", columnHeightPx);
+      if (document.documentElement) {
+        document.documentElement.style.setProperty("--column-height", columnHeightPx);
       }
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");

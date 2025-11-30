@@ -384,7 +384,7 @@
     const readoutEl = document.getElementById("focus-readout");
     let width = 1400;
     let height = 720;
-    const margin = { top: 12, right: 60, bottom: 8, left: 60 };
+    const margin = { top: 12, right: 85, bottom: 8, left: 60 };
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const urlParams = new URLSearchParams(window.location.search);
@@ -719,13 +719,13 @@
       const wrapperStyles = chartWrapper ? window.getComputedStyle(chartWrapper) : null;
       const wrapperPaddingTop = wrapperStyles ? parseFloat(wrapperStyles.paddingTop || "0") : 0;
       const wrapperPaddingBottom = wrapperStyles ? parseFloat(wrapperStyles.paddingBottom || "0") : 0;
-      const innerWrapperHeight = Math.max(200, wrapperClientHeight - wrapperPaddingTop - wrapperPaddingBottom);
+      const availableWrapperHeight = Math.max(200, wrapperClientHeight - wrapperPaddingTop - wrapperPaddingBottom);
       const columnGap = chartColumn
         ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
         : 0;
       const legendHeight = legendEl?.offsetHeight ?? 0;
       const reservedHeight = legendHeight + columnGap;
-      let chartColumnHeight = innerWrapperHeight;
+      let chartColumnHeight = availableWrapperHeight;
       const uncompensatedHeight = Math.max(240, chartColumnHeight);
       if (layoutOverflowCompensation > 0) {
         const maxAllowedReduction = Math.max(0, uncompensatedHeight - 240);
@@ -735,10 +735,13 @@
       const targetInnerHeight = Math.max(0, chartColumnHeight - reservedHeight);
       const targetColumnHeight = targetInnerHeight + reservedHeight;
 
+      const innerWrapperHeight = targetColumnHeight;
+
       logLayoutDebug("sizing computed", {
         viewportWidth,
         viewportHeight,
         wrapperClientHeight,
+        availableWrapperHeight,
         innerWrapperHeight,
         columnGap,
         legendHeight,
@@ -750,9 +753,10 @@
         existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
       if (chartWrapper) {
-        chartWrapper.style.removeProperty("height");
-        chartWrapper.style.removeProperty("min-height");
-        chartWrapper.style.removeProperty("max-height");
+        const wrapperHeightPx = `${targetColumnHeight + wrapperPaddingTop + wrapperPaddingBottom}px`;
+        chartWrapper.style.minHeight = wrapperHeightPx;
+        chartWrapper.style.height = wrapperHeightPx;
+        chartWrapper.style.maxHeight = wrapperHeightPx;
       }
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");

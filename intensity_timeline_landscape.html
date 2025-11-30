@@ -361,6 +361,22 @@
     const margin = { top: 8, right: 85, bottom: 8, left: 60 };
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
+    const urlParams = new URLSearchParams(window.location.search);
+    const layoutDebugEnabled =
+      urlParams.has("debugLayout") ||
+      urlParams.get("debug") === "layout" ||
+      urlParams.get("layoutLogs") === "1";
+
+    function logLayoutDebug(message, detail = {}) {
+      if (!layoutDebugEnabled) {
+        return;
+      }
+      try {
+        console.log(`[timeline-layout] ${message}`, detail);
+      } catch (_) {
+        // ignore logging errors
+      }
+    }
     const intensityPalette = {
       rest: { label: "Rest", color: "#E5E5E5" },
       easy: { label: "Easy", color: "#2563eb" },
@@ -452,15 +468,30 @@
       if (overflow > 1 && currentChartAreaHeight > 240) {
         const maxAdjustable = Math.max(0, currentChartAreaHeight - 240);
         if (maxAdjustable <= 0) {
+          logLayoutDebug("clamp skipped (no adjustable height)", {
+            overflow,
+            currentChartAreaHeight,
+            maxAdjustable,
+          });
           return false;
         }
         layoutOverflowCompensation = Math.min(
           maxAdjustable,
           Math.max(0, (layoutOverflowCompensation || 0) + overflow + 1)
         );
+        logLayoutDebug("clamp applied", {
+          overflow,
+          currentChartAreaHeight,
+          maxAdjustable,
+          layoutOverflowCompensation,
+        });
         return true;
       }
       layoutOverflowCompensation = 0;
+      logLayoutDebug("clamp cleared", {
+        overflow,
+        currentChartAreaHeight,
+      });
       return false;
     }
 
@@ -640,6 +671,20 @@
       chartColumnHeight = Math.max(240, chartColumnHeight);
       const targetInnerHeight = Math.max(0, chartColumnHeight - reservedHeight);
       const targetColumnHeight = targetInnerHeight + reservedHeight;
+
+      logLayoutDebug("sizing computed", {
+        viewportWidth,
+        viewportHeight,
+        wrapperClientHeight,
+        innerWrapperHeight,
+        columnGap,
+        legendHeight,
+        reservedHeight,
+        chartColumnHeight,
+        targetInnerHeight,
+        targetColumnHeight,
+        layoutOverflowCompensation,
+      });
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");
         chartAreaCard.style.minHeight = `${targetColumnHeight}px`;
@@ -661,6 +706,11 @@
         window.requestAnimationFrame(() => {
           const recalculatedHeight = chartColumn?.clientHeight ?? targetColumnHeight;
           applyReadoutHeight(recalculatedHeight);
+          logLayoutDebug("readout height applied", {
+            requestedHeight: targetColumnHeight,
+            recalculatedHeight,
+            columnClientHeight: chartColumn?.clientHeight ?? null,
+          });
         });
       }
 

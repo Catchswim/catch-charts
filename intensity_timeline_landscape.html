@@ -119,6 +119,9 @@
       gap: 6px;
       min-height: 0;
       justify-content: flex-start;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
     .chart-area {
@@ -380,7 +383,7 @@
     const readoutEl = document.getElementById("focus-readout");
     let width = 1400;
     let height = 720;
-    const margin = { top: 4, right: 85, bottom: 4, left: 56 };
+    const margin = { top: 4, right: 20, bottom: 4, left:20 };
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const urlParams = new URLSearchParams(window.location.search);

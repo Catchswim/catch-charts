@@ -271,6 +271,10 @@
       align-self: stretch;
       box-sizing: border-box;
       min-height: 0;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      max-height: 100%;
     }
 
     .focus-readout > div {
@@ -431,12 +435,20 @@
       }
     }
 
-    function clampLayoutToViewport(currentChartAreaHeight) {
+    function clampLayoutToViewport(currentChartAreaHeight, chartWrapper) {
       const root = document.documentElement;
-      if (!root) {
-        return false;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? root?.clientHeight ?? 0;
+      let overflow = 0;
+      if (root) {
+        overflow = Math.max(overflow, Math.round(root.scrollHeight - root.clientHeight));
       }
-      const overflow = Math.round(root.scrollHeight - root.clientHeight);
+      if (chartWrapper && viewportHeight) {
+        const wrapperRect = chartWrapper.getBoundingClientRect();
+        if (wrapperRect) {
+          const wrapperOverflow = Math.max(0, Math.round(wrapperRect.bottom - viewportHeight));
+          overflow = Math.max(overflow, wrapperOverflow);
+        }
+      }
       if (overflow > 1 && currentChartAreaHeight > 240) {
         const maxAdjustable = Math.max(0, currentChartAreaHeight - 240);
         if (maxAdjustable <= 0) {
@@ -630,15 +642,16 @@
         chartArea.style.height = `${chartAreaHeight}px`;
       }
       if (focusReadoutEl) {
-        const columnHeightTarget = chartColumn?.clientHeight ?? innerWrapperHeight;
-        focusReadoutEl.style.minHeight = `${columnHeightTarget}px`;
-        focusReadoutEl.style.height = `${columnHeightTarget}px`;
-        focusReadoutEl.style.maxHeight = `${columnHeightTarget}px`;
+        const applyReadoutHeight = (value) => {
+          const safeHeight = Math.max(240, Math.min(value, innerWrapperHeight));
+          focusReadoutEl.style.minHeight = `${safeHeight}px`;
+          focusReadoutEl.style.height = `${safeHeight}px`;
+          focusReadoutEl.style.maxHeight = `${safeHeight}px`;
+        };
+        applyReadoutHeight(chartAreaHeight);
         window.requestAnimationFrame(() => {
-          const recalculatedHeight = chartColumn?.clientHeight ?? innerWrapperHeight;
-          focusReadoutEl.style.minHeight = `${recalculatedHeight}px`;
-          focusReadoutEl.style.height = `${recalculatedHeight}px`;
-          focusReadoutEl.style.maxHeight = `${recalculatedHeight}px`;
+          const recalculatedHeight = chartColumn?.clientHeight ?? chartAreaHeight;
+          applyReadoutHeight(recalculatedHeight);
         });
       }
 
@@ -1153,7 +1166,7 @@
       const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
       handleFocus(null, defaultFocusTime);
 
-      if (!options.suppressClamp && clampLayoutToViewport(chartAreaHeight)) {
+      if (!options.suppressClamp && clampLayoutToViewport(chartAreaHeight, chartWrapper)) {
         window.requestAnimationFrame(() => {
           if (latestSessionData) {
             renderChart(latestSessionData, { suppressClamp: true });

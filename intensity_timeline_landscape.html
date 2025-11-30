@@ -27,6 +27,7 @@
       color: var(--text-color);
       background: var(--background-color);
       --landscape-height: calc(50vh - 35px);
+      --column-height: 280px;
     }
 
     :root.dark-mode {
@@ -101,14 +102,14 @@
       width: 100%;
       flex: 1;
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
       justify-content: center;
       gap: 10px;
       padding: 0 10px 10px;
       box-sizing: border-box;
-      min-height: 0;
-      height: auto;
-      max-height: none;
+      min-height: var(--column-height);
+      height: var(--column-height);
+      max-height: var(--column-height);
     }
 
     .chart-column {
@@ -119,6 +120,7 @@
       gap: 6px;
       min-height: 0;
       justify-content: flex-start;
+      height: 100%;
       overflow-y: auto;
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
@@ -280,6 +282,7 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       max-height: 100%;
+      height: 100%;
     }
 
     .focus-readout > div {
@@ -752,10 +755,9 @@
         layoutOverflowCompensation,
         existingColumnClientHeight: chartColumn?.clientHeight ?? null,
       });
+      const columnHeightPx = `${targetColumnHeight}px`;
       if (chartWrapper) {
-        chartWrapper.style.removeProperty("height");
-        chartWrapper.style.removeProperty("min-height");
-        chartWrapper.style.removeProperty("max-height");
+        chartWrapper.style.setProperty("--column-height", columnHeightPx);
       }
       if (chartAreaCard) {
         chartAreaCard.style.removeProperty("height");

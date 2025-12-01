@@ -26,8 +26,6 @@
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text-color);
       background: var(--background-color);
-      --landscape-height: calc(50vh - 35px);
-      --available-height: 100vh;
     }
 
     :root.dark-mode {
@@ -47,17 +45,8 @@
       --legend-color: #f6fdff;
     }
 
-    @supports (height: 50dvh) {
-      :root {
-        --landscape-height: calc(100dvh - 35px);
-      }
-    }
-
-    @supports (height: 50svh) {
-      :root {
-        --landscape-height: min(calc(50svh - 35px), calc(100dvh - 35px));
-      }
-    }
+   
+    
 
     html,
     body {
@@ -76,8 +65,7 @@
       width: 100%;
       height: 100%;
       background: var(--body-background-color);
-      align-items: flex-start;
-      justify-content: center;
+    
     }
 
     .page-wrapper {
@@ -98,7 +86,6 @@
       flex: 1;
       display: flex;
       align-items: stretch;
-      justify-content: center;
       gap: 16px;
       padding: 16px;
       box-sizing: border-box;
@@ -158,7 +145,7 @@
 
     .axis text {
       fill: var(--axis-text-color);
-      font-size: 16px;
+      font-size: 18px;
       font-family: inherit;
     }
 
@@ -376,58 +363,6 @@
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const urlParams = new URLSearchParams(window.location.search);
-    const layoutDebugEnabled =
-      urlParams.has("debugLayout") ||
-      urlParams.get("debug") === "layout" ||
-      urlParams.get("layoutLogs") === "1";
-    let layoutDebugPanel = null;
-
-    function logLayoutDebug(message, detail = {}) {
-      if (!layoutDebugEnabled) {
-        return;
-      }
-      try {
-        console.log(`[timeline-layout] ${message}`, detail);
-      } catch (_) {
-        // ignore logging errors
-      }
-      updateLayoutDebugPanel(message, detail);
-    }
-
-    function ensureLayoutDebugPanel() {
-      if (!layoutDebugEnabled) {
-        return null;
-      }
-      if (layoutDebugPanel) {
-        return layoutDebugPanel;
-      }
-      layoutDebugPanel = document.createElement("div");
-      layoutDebugPanel.className = "layout-debug-panel";
-      layoutDebugPanel.setAttribute("aria-live", "polite");
-      layoutDebugPanel.style.display = "block";
-      document.body?.appendChild(layoutDebugPanel);
-      return layoutDebugPanel;
-    }
-
-    function stringifyLayoutDetail(detail = {}) {
-      try {
-        return JSON.stringify(detail, null, 2);
-      } catch (_) {
-        return String(detail);
-      }
-    }
-
-    function updateLayoutDebugPanel(message, detail) {
-      if (!layoutDebugEnabled) {
-        return;
-      }
-      const panel = ensureLayoutDebugPanel();
-      if (!panel) {
-        return;
-      }
-      const timestamp = new Date().toLocaleTimeString();
-      panel.innerHTML = `<strong style="display:block;margin-bottom:4px;">${message}</strong><div style="opacity:0.8;margin-bottom:6px;">${timestamp}</div><code style="font-size:11px;white-space:pre-wrap;">${stringifyLayoutDetail(detail)}</code>`;
-    }
     const intensityPalette = {
       rest: { label: "Rest", color: "#E5E5E5" },
       easy: { label: "Easy", color: "#2563eb" },
@@ -688,34 +623,6 @@
         resetReadout("Unable to load swim data");
       }
     }
-
-    function getForcedHeightParam() {
-      const params = new URLSearchParams(window.location.search);
-      const forced = parseFloat(params.get("vh") || params.get("height") || "");
-      return Number.isFinite(forced) ? forced : null;
-    }
-
-    function applyAvailableHeight() {
-      const forced = getForcedHeightParam();
-      if (forced != null && forced > 0) {
-        document.documentElement.style.setProperty("--available-height", `${forced}px`);
-        return;
-      }
-
-      const viewport = window.visualViewport;
-      const height = viewport?.height ?? window.innerHeight ?? document.documentElement?.clientHeight ?? 600;
-      const insetTop = viewport?.offsetTop ?? 0;
-      const safeHeight = Math.max(320, Math.round(height - insetTop));
-      document.documentElement.style.setProperty("--available-height", `${safeHeight}px`);
-    }
-
-    applyAvailableHeight();
-    window.visualViewport?.addEventListener("resize", () => {
-      window.requestAnimationFrame(applyAvailableHeight);
-    });
-    window.addEventListener("resize", () => {
-      window.requestAnimationFrame(applyAvailableHeight);
-    });
 
     function renderChart(data, options = {}) {
       resetReadout();

@@ -65,7 +65,6 @@
       width: 100%;
       height: 100%;
       background: var(--body-background-color);
-    
     }
 
     .page-wrapper {
@@ -177,13 +176,11 @@
 
     .legend {
       display: flex;
-      gap: 0.75rem;
-      font-size: 10px;
+      gap: 1.25rem;
+      font-size: 12px;
       font-weight: 400;
       color: var(--legend-color);
       flex-wrap: wrap;
-      margin: 8px 0 0;
-      line-height: 1.1;
     }
 
     .legend-dot {
@@ -273,7 +270,7 @@
     }
 
     .focus-readout .value {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 600;
       letter-spacing: 0.01em;
     }
@@ -285,29 +282,16 @@
       opacity: 0.85;
     }
 
-    .layout-debug-panel {
-      position: fixed;
-      left: 12px;
-      top: 12px;
-      z-index: 9999;
-      max-width: 320px;
-      background: rgba(11, 30, 34, 0.92);
-      color: #f6fdff;
-      font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 12px;
-      line-height: 1.3;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-      pointer-events: none;
-      opacity: 0.95;
-      display: none;
-      white-space: pre-wrap;
-    }
-
     #loading {
-      display: none;
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.75rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      text-align: center;
+      font-size: 0.95rem;
+      color: var(--text-color);
+      letter-spacing: 0.02em;
     }
 
     .rotate-overlay {
@@ -342,24 +326,26 @@
           <div class="chart-area-inner">
             <div id="chart"></div>
           </div>
-        </div>
-        <div class="legend">
-          <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
-          <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-          <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
+          <div class="legend">
+            <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+            <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+            <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
+          </div>
         </div>
       </div>
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     </div>
     <div class="tooltip" id="tooltip"></div>
+    <div id="loading">Loading…</div>
   </div>
 
   <script>
     const tooltip = d3.select("#tooltip");
     const readoutEl = document.getElementById("focus-readout");
+    const loadingEl = document.getElementById("loading");
     let width = 1400;
     let height = 720;
-    const margin = { top: 12, right: 85, bottom: 8, left: 65 };
+    const margin = { top: 12, right: 80, bottom: 32, left: 90 };
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const urlParams = new URLSearchParams(window.location.search);
@@ -437,6 +423,8 @@
       }
     }
 
+    function logLayoutDebug() {}
+
     function clampLayoutToViewport(currentChartAreaHeight, chartWrapper) {
       const root = document.documentElement;
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? root?.clientHeight ?? 0;
@@ -510,13 +498,27 @@
       tryLockOrientation();
     });
 
+    function setLoading(visible, message = "Loading…") {
+      if (!loadingEl) {
+        return;
+      }
+      loadingEl.textContent = message;
+      loadingEl.style.display = visible ? "block" : "none";
+    }
+
+    function showError(message) {
+      console.error(message);
+      setLoading(true, message);
+      resetReadout(message);
+    }
+
     function resetReadout(message = "Tap anywhere to find out more.") {
       if (!readoutEl) return;
       readoutEl.classList.add("empty");
       readoutEl.textContent = message;
     }
     resetReadout();
-    resetReadout();
+    setLoading(true);
 
     async function fetchSession(sessionId, token) {
       const headers = new Headers({ accept: "application/json" });
@@ -605,6 +607,7 @@
       const token = parseToken();
       try {
         const payload = await fetchSession(sessionId, token);
+        setLoading(false);
         latestSessionData = payload;
         layoutOverflowCompensation = 0;
         renderChart(payload);
@@ -620,7 +623,7 @@
         }
       } catch (error) {
         console.error(error);
-        resetReadout("Unable to load swim data");
+        showError("Unable to load swim data");
       }
     }
 

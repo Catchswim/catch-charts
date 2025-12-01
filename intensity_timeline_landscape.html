@@ -282,18 +282,6 @@
       opacity: 0.85;
     }
 
-    #loading {
-      margin-top: 1.25rem;
-      padding: 0.85rem 1rem;
-      border-radius: 0.75rem;
-      background: transparent;
-      border: 1px solid var(--border-color);
-      text-align: center;
-      font-size: 0.95rem;
-      color: var(--text-color);
-      letter-spacing: 0.02em;
-    }
-
     .rotate-overlay {
       position: fixed;
       inset: 0;
@@ -336,13 +324,11 @@
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     </div>
     <div class="tooltip" id="tooltip"></div>
-    <div id="loading">Loading…</div>
   </div>
 
   <script>
     const tooltip = d3.select("#tooltip");
     const readoutEl = document.getElementById("focus-readout");
-    const loadingEl = document.getElementById("loading");
     let width = 1400;
     let height = 720;
     const margin = { top: 12, right: 80, bottom: 12, left: 70 };
@@ -498,17 +484,8 @@
       tryLockOrientation();
     });
 
-    function setLoading(visible, message = "Loading…") {
-      if (!loadingEl) {
-        return;
-      }
-      loadingEl.textContent = message;
-      loadingEl.style.display = visible ? "block" : "none";
-    }
-
     function showError(message) {
       console.error(message);
-      setLoading(true, message);
       resetReadout(message);
     }
 
@@ -518,7 +495,6 @@
       readoutEl.textContent = message;
     }
     resetReadout();
-    setLoading(true);
 
     async function fetchSession(sessionId, token) {
       const headers = new Headers({ accept: "application/json" });
@@ -607,7 +583,6 @@
       const token = parseToken();
       try {
         const payload = await fetchSession(sessionId, token);
-        setLoading(false);
         latestSessionData = payload;
         layoutOverflowCompensation = 0;
         renderChart(payload);
@@ -622,7 +597,6 @@
           window.history.replaceState({}, "", window.location.pathname + window.location.search.replace(/&?token=[^&]*/, ""));
         }
       } catch (error) {
-        console.error(error);
         showError("Unable to load swim data");
       }
     }

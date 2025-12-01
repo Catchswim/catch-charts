@@ -23,6 +23,8 @@
       --rest-block-color: #E5E5E5;
       --axis-text-color: #004448;
       --legend-color: #004448;
+      --chart-wrapper-height: calc(100vh - 40px);
+      --readout-column-height: calc(100vh - 40px);
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text-color);
       background: var(--background-color);
@@ -43,6 +45,11 @@
       --rest-block-color: rgba(229, 229, 229, 0.35);
       --axis-text-color: #f6fdff;
       --legend-color: #f6fdff;
+    }
+
+    :root.android-device {
+      --chart-wrapper-height: calc(90vh - 40px);
+      --readout-column-height: calc(90vh - 40px);
     }
 
    
@@ -89,8 +96,8 @@
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: isAndroidDevice ? calc(90vh - 40px) : calc(100vh - 40px);
-      max-height: isAndroidDevice ? calc(90vh - 40px) : calc(100vh - 40px);
+      height: var(--chart-wrapper-height);
+      max-height: var(--chart-wrapper-height);
     }
 
     .chart-column {
@@ -249,7 +256,7 @@
       overflow-y: auto;
       align-self: stretch;
       box-sizing: border-box;
-      height: isAndroidDevice ? calc(90vh - 40px) : calc(100vh - 100px);
+      height: var(--readout-column-height);
       touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -346,6 +353,7 @@
     const ANDROID_WEBVIEW_HEADER_PX = 70;
     const isAndroidDevice = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
     const LANDSCAPE_OFFSET_PX = BASE_LANDSCAPE_OFFSET_PX + (isAndroidDevice ? ANDROID_WEBVIEW_HEADER_PX : 0);
+    document.documentElement.classList.toggle("android-device", isAndroidDevice);
 
     const themePreferenceParam = getThemeParam();
     const resolvedDarkMode = resolveDarkModePreference(themePreferenceParam);

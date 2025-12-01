@@ -2,16 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Swim Intensity Timeline · Landscape</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
 
     :root {
+      --background-color: #f6fdff;
+      --body-background-color: #f6fdff;
+      --text-color: #004448;
+      --muted-text-color: rgba(0, 68, 72, 0.75);
+      --surface-color: #ffffff;
+      --border-color: #CFC4DB;
+      --tooltip-background: #ffffff;
+      --tooltip-border: #CFC4DB;
+      --focus-readout-background: #ffffff;
+      --focus-readout-border: #CFC4DB;
+      --focus-line-color: rgba(0, 68, 72, 0.7);
+      --rest-block-color: #E5E5E5;
+      --axis-text-color: #004448;
+      --legend-color: #004448;
+      --container-height: 90vh;
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #004448;
-      background: #F6FDFF;
+      color: var(--text-color);
+      background: var(--background-color);
+    }
+
+    :root.dark-mode {
+      --background-color: #151820;
+      --body-background-color: #12151c;
+      --text-color: #f6fdff;
+      --muted-text-color: rgba(229, 251, 252, 0.75);
+      --surface-color: #151820;
+      --border-color: #CFC4DB;
+      --tooltip-background: #151820;
+      --tooltip-border: #CFC4DB;
+      --focus-readout-background: #151820;
+      --focus-readout-border: #CFC4DB;
+      --focus-line-color: #CFC4DB;
+      --rest-block-color: rgba(229, 229, 229, 0.35);
+      --axis-text-color: #f6fdff;
+      --legend-color: #f6fdff;
+    }
+
+    @supports (height: 50dvh) {
+      :root {
+        --landscape-height: calc(100dvh - 35px);
+      }
+    }
+
+    @supports (height: 50svh) {
+      :root {
+        --landscape-height: min(calc(50svh - 35px), calc(100dvh - 35px));
+      }
     }
 
     html,
@@ -20,8 +64,8 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #F6FDFF;
-      color: #004448;
+      background: var(--background-color);
+      color: var(--text-color);
       overflow: hidden;
       touch-action: manipulation;
     }
@@ -30,6 +74,9 @@
       display: flex;
       width: 100%;
       height: 100%;
+      background: var(--body-background-color);
+      align-items: flex-start;
+      justify-content: center;
     }
 
     .page-wrapper {
@@ -38,11 +85,12 @@
       width: 100%;
       max-width: 1600px;
       margin: 0 auto;
-      padding: 0;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
       box-sizing: border-box;
       background: transparent;
       display: flex;
       flex-direction: column;
+      height: var(--container-height);
     }
 
     .chart-wrapper {
@@ -50,12 +98,12 @@
       flex: 1;
       display: flex;
       align-items: stretch;
+      justify-content: center;
       gap: 16px;
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: calc(90vh - 40px);
-      max-height: calc(90vh - 40px);
+      height: 100%;
     }
 
     .chart-column {
@@ -64,6 +112,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-height: 0;
     }
 
     .chart-area {
@@ -71,9 +120,9 @@
       flex: 1;
       min-height: 260px;
       border-radius: 14px;
-      background: #ffffff;
-      border: 1px solid #CFC4DB;
-      overflow: visible;
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -86,6 +135,7 @@
       flex: 1;
       border-radius: 8px;
       overflow: visible;
+      touch-action: none;
     }
 
     #chart {
@@ -107,8 +157,8 @@
     }
 
     .axis text {
-      fill: #004448;
-      font-size: 18px;
+      fill: var(--axis-text-color);
+      font-size: 16px;
       font-family: inherit;
     }
 
@@ -126,25 +176,27 @@
       position: absolute;
       padding: 0.65rem 0.85rem;
       border-radius: 0.55rem;
-      background: #ffffff;
-      border: 1px solid #CFC4DB;
+      background: var(--tooltip-background);
+      border: 1px solid var(--tooltip-border);
       pointer-events: none;
       font-size: 0.85rem;
       line-height: 1.4;
       display: none;
       box-shadow: 0 10px 30px rgba(0, 68, 72, 0.15);
       font-family: inherit;
-      color: #004448;
+      color: var(--text-color);
       z-index: 5;
     }
 
     .legend {
       display: flex;
-      gap: 1.25rem;
+      gap: 1rem;
       font-size: 12px;
       font-weight: 400;
-      color: #004448;
+      color: var(--legend-color);
       flex-wrap: wrap;
+      margin: 0;
+      line-height: 1.2;
     }
 
     .legend-dot {
@@ -157,7 +209,7 @@
     }
 
     .rest-block {
-      fill: #E5E5E5;
+      fill: var(--rest-block-color);
       opacity: 0.2;
     }
 
@@ -168,7 +220,7 @@
     }
 
     .focus-line {
-      stroke: rgba(0, 68, 72, 0.7);
+      stroke: var(--focus-line-color);
       stroke-width: 2.5px;
       stroke-dasharray: 4 3;
       display: none;
@@ -191,8 +243,8 @@
 
     .focus-handle {
       display: none;
-      fill: #004448;
-      stroke: #ffffff;
+      fill: var(--text-color);
+      stroke: var(--surface-color);
       stroke-width: 2px;
       r: 6;
     }
@@ -203,8 +255,8 @@
       min-width: 220px;
       padding: 16px;
       border-radius: 12px;
-      border: 1px solid #CFC4DB;
-      background: #ffffff;
+      border: 1px solid var(--focus-readout-border);
+      background: var(--focus-readout-background);
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
@@ -213,25 +265,30 @@
       overflow-y: auto;
       align-self: stretch;
       box-sizing: border-box;
+      min-height: 0;
       height: 100%;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     .focus-readout > div {
-      display: inline-flex;
+      display: flex;
       flex-direction: column;
       gap: 4px;
-      min-width: 140px;
+      min-width: 120px;
+      max-width: calc(100% - 16px);
     }
 
     .focus-readout .label {
       font-size: 12px;
       font-weight: 400;
-      opacity: 0.75;
+      color: var(--muted-text-color);
       margin-bottom: 0.15rem;
     }
 
     .focus-readout .value {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       letter-spacing: 0.01em;
     }
@@ -243,16 +300,29 @@
       opacity: 0.85;
     }
 
+    .layout-debug-panel {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 9999;
+      max-width: 320px;
+      background: rgba(11, 30, 34, 0.92);
+      color: #f6fdff;
+      font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 12px;
+      line-height: 1.3;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      opacity: 0.95;
+      display: none;
+      white-space: pre-wrap;
+    }
+
     #loading {
-      margin-top: 1.25rem;
-      padding: 0.85rem 1rem;
-      border-radius: 0.75rem;
-      background: transparent;
-      border: 1px solid #CFC4DB;
-      text-align: center;
-      font-size: 0.95rem;
-      color: #004448;
-      letter-spacing: 0.02em;
+      display: none;
     }
 
     .rotate-overlay {
@@ -283,21 +353,22 @@
   <div class="page-wrapper">
     <div class="chart-wrapper">
       <div class="chart-column">
+          <div class="chart-column-scroll">
         <div class="chart-area">
           <div class="chart-area-inner">
             <div id="chart"></div>
+              </div>
           </div>
           <div class="legend">
             <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
             <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-            <span><span class="legend-dot" style="background:#E5E5E5"></span>Rest periods</span>
+            <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
           </div>
         </div>
       </div>
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
     </div>
     <div class="tooltip" id="tooltip"></div>
-    <div id="loading">Loading…</div>
   </div>
 
   <script>
@@ -305,9 +376,62 @@
     const readoutEl = document.getElementById("focus-readout");
     let width = 1400;
     let height = 720;
-    const margin = { top: 12, right: 80, bottom: 32, left: 90 };
-    const loadingEl = document.getElementById("loading");
+    const margin = { top: 12, right: 85, bottom: 8, left: 65 };
+    const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
+    const urlParams = new URLSearchParams(window.location.search);
+    const layoutDebugEnabled =
+      urlParams.has("debugLayout") ||
+      urlParams.get("debug") === "layout" ||
+      urlParams.get("layoutLogs") === "1";
+    let layoutDebugPanel = null;
+
+    function logLayoutDebug(message, detail = {}) {
+      if (!layoutDebugEnabled) {
+        return;
+      }
+      try {
+        console.log(`[timeline-layout] ${message}`, detail);
+      } catch (_) {
+        // ignore logging errors
+      }
+      updateLayoutDebugPanel(message, detail);
+    }
+
+    function ensureLayoutDebugPanel() {
+      if (!layoutDebugEnabled) {
+        return null;
+      }
+      if (layoutDebugPanel) {
+        return layoutDebugPanel;
+      }
+      layoutDebugPanel = document.createElement("div");
+      layoutDebugPanel.className = "layout-debug-panel";
+      layoutDebugPanel.setAttribute("aria-live", "polite");
+      layoutDebugPanel.style.display = "block";
+      document.body?.appendChild(layoutDebugPanel);
+      return layoutDebugPanel;
+    }
+
+    function stringifyLayoutDetail(detail = {}) {
+      try {
+        return JSON.stringify(detail, null, 2);
+      } catch (_) {
+        return String(detail);
+      }
+    }
+
+    function updateLayoutDebugPanel(message, detail) {
+      if (!layoutDebugEnabled) {
+        return;
+      }
+      const panel = ensureLayoutDebugPanel();
+      if (!panel) {
+        return;
+      }
+      const timestamp = new Date().toLocaleTimeString();
+      panel.innerHTML = `<strong style="display:block;margin-bottom:4px;">${message}</strong><div style="opacity:0.8;margin-bottom:6px;">${timestamp}</div><code style="font-size:11px;white-space:pre-wrap;">${stringifyLayoutDetail(detail)}</code>`;
+    }
     const intensityPalette = {
       rest: { label: "Rest", color: "#E5E5E5" },
       easy: { label: "Easy", color: "#2563eb" },
@@ -315,8 +439,130 @@
       fast: { label: "Fast", color: "#22c55e" },
       max: { label: "Max", color: "#b91c1c" },
     };
+    const BASE_LANDSCAPE_OFFSET_PX = 35;
+    const ANDROID_WEBVIEW_HEADER_PX = 70;
+    const isAndroidDevice = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
+    const LANDSCAPE_OFFSET_PX = BASE_LANDSCAPE_OFFSET_PX + (isAndroidDevice ? ANDROID_WEBVIEW_HEADER_PX : 0);
+
+    const themePreferenceParam = getThemeParam();
+    const resolvedDarkMode = resolveDarkModePreference(themePreferenceParam);
+    applyDocumentTheme(resolvedDarkMode);
+    if (!themePreferenceParam) {
+      attachSystemThemeListener();
+    }
 
     let latestSessionData = null;
+    let viewportHeightListenersAttached = false;
+    let pendingViewportHeightFrame = null;
+    let pendingViewportRenderFrame = null;
+    let layoutOverflowCompensation = 0;
+
+    function applyLandscapeViewportHeight() {
+      const viewportHeight =
+        window.visualViewport?.height ?? window.innerHeight ?? document.documentElement?.clientHeight ?? 720;
+      const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
+      const computedHeight = Math.max(320, Math.round(viewportHeight - viewportOffsetTop - LANDSCAPE_OFFSET_PX));
+      applyRootHeight(computedHeight);
+      scheduleLatestDataRender();
+    }
+
+    function scheduleLandscapeViewportHeightUpdate() {
+      if (pendingViewportHeightFrame != null) {
+        return;
+      }
+      pendingViewportHeightFrame = window.requestAnimationFrame(() => {
+        pendingViewportHeightFrame = null;
+        applyLandscapeViewportHeight();
+      });
+    }
+
+    function scheduleLatestDataRender() {
+      if (!latestSessionData) {
+        return;
+      }
+      if (pendingViewportRenderFrame != null) {
+        return;
+      }
+      pendingViewportRenderFrame = window.requestAnimationFrame(() => {
+        pendingViewportRenderFrame = null;
+        renderChart(latestSessionData);
+      });
+    }
+
+    function applyRootHeight(heightPx) {
+      const safeHeight = Math.max(320, Math.round(heightPx ?? 320));
+      const pxValue = `${safeHeight}px`;
+      document.documentElement.style.setProperty("--landscape-height", pxValue);
+      document.documentElement.style.height = pxValue;
+      document.documentElement.style.minHeight = pxValue;
+      if (document.body) {
+        document.body.style.height = pxValue;
+        document.body.style.minHeight = pxValue;
+      }
+      const pageWrapper = document.querySelector(".page-wrapper");
+      if (pageWrapper) {
+        pageWrapper.style.height = pxValue;
+        pageWrapper.style.minHeight = pxValue;
+      }
+    }
+
+    function clampLayoutToViewport(currentChartAreaHeight, chartWrapper) {
+      const root = document.documentElement;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? root?.clientHeight ?? 0;
+      let overflow = 0;
+      if (root) {
+        overflow = Math.max(overflow, Math.round(root.scrollHeight - root.clientHeight));
+      }
+      if (chartWrapper && viewportHeight) {
+        const wrapperRect = chartWrapper.getBoundingClientRect();
+        if (wrapperRect) {
+          const wrapperOverflow = Math.max(0, Math.round(wrapperRect.bottom - viewportHeight));
+          overflow = Math.max(overflow, wrapperOverflow);
+        }
+      }
+      if (overflow > 1 && currentChartAreaHeight > 240) {
+        const maxAdjustable = Math.max(0, currentChartAreaHeight - 240);
+        if (maxAdjustable <= 0) {
+          logLayoutDebug("clamp skipped (no adjustable height)", {
+            overflow,
+            currentChartAreaHeight,
+            maxAdjustable,
+          });
+          return false;
+        }
+        layoutOverflowCompensation = Math.min(
+          maxAdjustable,
+          Math.max(0, (layoutOverflowCompensation || 0) + overflow + 1)
+        );
+        logLayoutDebug("clamp applied", {
+          overflow,
+          currentChartAreaHeight,
+          maxAdjustable,
+          layoutOverflowCompensation,
+        });
+        return true;
+      }
+      layoutOverflowCompensation = 0;
+      logLayoutDebug("clamp cleared", {
+        overflow,
+        currentChartAreaHeight,
+      });
+      return false;
+    }
+
+    function ensureViewportHeightListeners() {
+      if (viewportHeightListenersAttached) {
+        return;
+      }
+      viewportHeightListenersAttached = true;
+      window.addEventListener("resize", scheduleLandscapeViewportHeightUpdate);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", scheduleLandscapeViewportHeightUpdate);
+      }
+    }
+
+    scheduleLandscapeViewportHeightUpdate();
+    ensureViewportHeightListeners();
 
     async function tryLockOrientation() {
       if (window.screen?.orientation?.lock) {
@@ -329,22 +575,16 @@
     }
 
     window.addEventListener("load", () => {
+      scheduleLandscapeViewportHeightUpdate();
       tryLockOrientation();
     });
-
-    function setLoading(show) {
-      if (!loadingEl) return;
-      loadingEl.textContent = "Loading…";
-      loadingEl.style.display = show ? "block" : "none";
-    }
 
     function resetReadout(message = "Tap anywhere to find out more.") {
       if (!readoutEl) return;
       readoutEl.classList.add("empty");
       readoutEl.textContent = message;
     }
-
-    setLoading(true);
+    resetReadout();
     resetReadout();
 
     async function fetchSession(sessionId, token) {
@@ -365,14 +605,6 @@
       return payload.sessionData;
     }
 
-    function showError(message) {
-      if (loadingEl) {
-        loadingEl.textContent = message;
-      }
-      resetReadout(message);
-      setLoading(true);
-    }
-
     function parseSessionId() {
       const params = new URLSearchParams(window.location.search);
       return params.get("sessionId");
@@ -381,6 +613,56 @@
     function parseToken() {
       const params = new URLSearchParams(window.location.search);
       return params.get("token");
+    }
+
+    function getThemeParam() {
+      const params = new URLSearchParams(window.location.search);
+      const candidate = params.get("theme") ?? params.get("mode") ?? params.get("appearance");
+      if (!candidate) {
+        return null;
+      }
+      const normalized = candidate.toLowerCase();
+      if (normalized.includes("dark")) {
+        return "dark";
+      }
+      if (normalized.includes("light")) {
+        return "light";
+      }
+      return null;
+    }
+
+    function resolveDarkModePreference(themeParam) {
+      if (themeParam === "dark") {
+        return true;
+      }
+      if (themeParam === "light") {
+        return false;
+      }
+      return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
+    }
+
+    function applyDocumentTheme(isDark) {
+      const root = document.documentElement;
+      if (!root) {
+        return;
+      }
+      root.classList.toggle("dark-mode", Boolean(isDark));
+      if (document.body) {
+        document.body.classList.toggle("dark-mode", Boolean(isDark));
+      }
+    }
+
+    function attachSystemThemeListener() {
+      const mediaQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+      if (!mediaQuery) {
+        return;
+      }
+      const updateTheme = (event) => applyDocumentTheme(event.matches);
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener("change", updateTheme);
+      } else if (mediaQuery.addListener) {
+        mediaQuery.addListener(updateTheme);
+      }
     }
 
     async function hydrateChart() {
@@ -392,8 +674,8 @@
       const token = parseToken();
       try {
         const payload = await fetchSession(sessionId, token);
-        setLoading(false);
         latestSessionData = payload;
+        layoutOverflowCompensation = 0;
         renderChart(payload);
         if (!window.__timelineLandscapeResizeAttached) {
           window.__timelineLandscapeResizeAttached = true;
@@ -407,15 +689,44 @@
         }
       } catch (error) {
         console.error(error);
-        showError("Unable to load swim data");
+        resetReadout("Unable to load swim data");
       }
     }
 
-    function renderChart(data) {
+    function getForcedHeightParam() {
+      const params = new URLSearchParams(window.location.search);
+      const forced = parseFloat(params.get("vh") || params.get("height") || "");
+      return Number.isFinite(forced) ? forced : null;
+    }
+
+    function applyAvailableHeight() {
+      const forced = getForcedHeightParam();
+      if (forced != null && forced > 0) {
+        document.documentElement.style.setProperty("--container-height", `${forced}px`);
+        return;
+      }
+
+      const viewport = window.visualViewport;
+      const height = viewport?.height ?? window.innerHeight ?? document.documentElement?.clientHeight ?? 600;
+      const insetTop = viewport?.offsetTop ?? 0;
+      const safeHeight = Math.max(320, Math.round(height - insetTop));
+      document.documentElement.style.setProperty("--container-height", `${safeHeight}px`);
+    }
+
+    applyAvailableHeight();
+    window.visualViewport?.addEventListener("resize", () => {
+      window.requestAnimationFrame(applyAvailableHeight);
+    });
+    window.addEventListener("resize", () => {
+      window.requestAnimationFrame(applyAvailableHeight);
+    });
+
+    function renderChart(data, options = {}) {
       resetReadout();
 
       const chartContainer = document.getElementById("chart");
-      const chartArea = chartContainer?.parentElement;
+      const chartAreaInner = chartContainer?.parentElement;
+      const chartAreaCard = chartAreaInner?.parentElement;
       const chartWrapper = document.querySelector(".chart-wrapper");
       const chartColumn = document.querySelector(".chart-column");
       const legendEl = document.querySelector(".legend");
@@ -424,38 +735,65 @@
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const wrapperHeight = Math.max(
-        200,
-        Math.min(chartWrapper?.clientHeight ?? viewportHeight, viewportHeight * 0.9) - 40
-      );
-      const columnGap = chartColumn
-        ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
-        : 0;
+      const wrapperClientHeight = chartWrapper?.clientHeight ?? viewportHeight * 0.9;
+      const columnClientHeight = chartColumn?.clientHeight ?? wrapperClientHeight;
+      const columnStyles = chartColumn ? window.getComputedStyle(chartColumn) : null;
+      const columnPaddingTop = columnStyles ? parseFloat(columnStyles.paddingTop || "0") : 0;
+      const columnPaddingBottom = columnStyles ? parseFloat(columnStyles.paddingBottom || "0") : 0;
+      const usableColumnHeight = Math.max(220, columnClientHeight - columnPaddingTop - columnPaddingBottom);
       const legendHeight = legendEl?.offsetHeight ?? 0;
-      const readoutHeight = focusReadoutEl?.offsetHeight ?? 0;
-      const columnHeight = chartColumn?.getBoundingClientRect()?.height ?? wrapperHeight;
-      const reservedHeight = legendHeight + columnGap;
+      const legendSpacing = 12;
+      const targetInnerHeight = Math.max(180, usableColumnHeight - legendHeight - legendSpacing);
+      const targetColumnHeight = columnClientHeight;
 
-      let chartAreaHeight = columnHeight - reservedHeight;
-      if (!Number.isFinite(chartAreaHeight) || chartAreaHeight <= 0) {
-        chartAreaHeight = Math.max(260, wrapperHeight * 0.6);
-      }
-      chartAreaHeight = Math.max(260, Math.min(chartAreaHeight, viewportHeight * 0.55));
-
-      if (chartArea) {
-        chartArea.style.height = `${chartAreaHeight}px`;
+      logLayoutDebug("sizing computed", {
+        viewportWidth,
+        viewportHeight,
+        wrapperClientHeight,
+        columnClientHeight,
+        usableColumnHeight,
+        legendHeight,
+        legendSpacing,
+        targetInnerHeight,
+        layoutOverflowCompensation,
+      });
+      if (chartAreaInner) {
+        const innerHeightPx = `${targetInnerHeight}px`;
+        chartAreaInner.style.minHeight = innerHeightPx;
+        chartAreaInner.style.height = innerHeightPx;
+        chartAreaInner.style.maxHeight = innerHeightPx;
       }
       if (focusReadoutEl) {
-        focusReadoutEl.style.height = `${chartAreaHeight}px`;
+        const applyReadoutHeight = (value, reason = "requested") => {
+          const columnTarget = chartColumn?.clientHeight ?? targetColumnHeight;
+          const safeHeight = Math.max(240, Math.min(value, columnTarget));
+          focusReadoutEl.style.minHeight = `${safeHeight}px`;
+          focusReadoutEl.style.height = `${safeHeight}px`;
+          focusReadoutEl.style.maxHeight = `${safeHeight}px`;
+          logLayoutDebug("readout height applied", {
+            reason,
+            requestedHeight: value,
+            applied: safeHeight,
+            columnClientHeight: chartColumn?.clientHeight ?? null,
+            targetColumnHeight,
+          });
+        };
+        applyReadoutHeight(targetColumnHeight);
+        window.requestAnimationFrame(() => {
+          const recalculatedHeight = chartColumn?.clientHeight ?? targetColumnHeight;
+          applyReadoutHeight(recalculatedHeight, "recalculated");
+        });
       }
 
-      const chartWidth = chartArea?.clientWidth ?? Math.max(1100, viewportWidth * 0.7);
+      const chartWidth = chartAreaInner?.clientWidth ?? Math.max(900, viewportWidth * 0.65);
+      const chartInnerHeight = chartAreaInner?.clientHeight ?? targetInnerHeight;
       const availablePlotWidth = Math.max(600, chartWidth - margin.left - margin.right);
 
       width = availablePlotWidth;
-      height = Math.max(200, chartAreaHeight - margin.top - margin.bottom);
+      height = Math.max(200, chartInnerHeight - margin.top - margin.bottom);
 
       const providerDetail = data.provider_workout_detail ?? null;
+      const sessionReferenceSeconds = getSessionReferenceSeconds(providerDetail);
       const segments = [];
       let cumulative = 0;
 
@@ -476,8 +814,23 @@
         });
       });
 
-      const totalDuration = cumulative || data.summary?.total_duration || 0;
-      const heartRateSeries = buildHeartRateSeries(providerDetail, segments, totalDuration);
+      applyActualSegmentTimings(segments, providerDetail, sessionReferenceSeconds);
+
+      let totalDuration = cumulative || data.summary?.total_duration || 0;
+      const timelineEnd = segments[segments.length - 1]?.endTime;
+      if (Number.isFinite(timelineEnd) && timelineEnd > 0) {
+        totalDuration = timelineEnd;
+      }
+
+      const clipRange = [
+        segments[0]?.startTime ?? 0,
+        segments[segments.length - 1]?.endTime ?? totalDuration,
+      ];
+
+      const heartRateSeries = buildHeartRateSeries(providerDetail, segments, totalDuration, {
+        referenceSeconds: sessionReferenceSeconds,
+        clipRange,
+      });
       let hrSeries = heartRateSeries.length
         ? heartRateSeries
         : segments
@@ -488,14 +841,29 @@
           }));
 
       if (hrSeries.length) {
-        const first = hrSeries[0];
-        const last = hrSeries[hrSeries.length - 1];
-        if (first.time > 0) {
-          hrSeries = [{ time: 0, value: first.value }, ...hrSeries];
+        const lastBeforeAlignment = hrSeries[hrSeries.length - 1];
+        const expectedDuration = segments.length
+          ? totalDuration
+          : Math.max(totalDuration, lastBeforeAlignment?.time ?? 0);
+        const shouldRescale =
+          segments.length > 0 &&
+          expectedDuration > 0 &&
+          (lastBeforeAlignment?.time ?? 0) > 0;
+        if (shouldRescale) {
+          const durationDelta = Math.abs((lastBeforeAlignment?.time ?? 0) - expectedDuration);
+          const relativeDelta = durationDelta / Math.max(lastBeforeAlignment.time, expectedDuration);
+          if (relativeDelta > DURATION_ALIGNMENT_TOLERANCE) {
+            const scaleFactor = expectedDuration / lastBeforeAlignment.time;
+            const hrCount = hrSeries.length;
+            hrSeries = hrSeries.map((sample, idx) => ({
+              ...sample,
+              time: idx === hrCount - 1 ? expectedDuration : sample.time * scaleFactor,
+            }));
+          }
         }
-        const sessionEnd = totalDuration || segments[segments.length - 1]?.endTime || last.time;
-        if (sessionEnd && last.time < sessionEnd) {
-          hrSeries = [...hrSeries, { time: sessionEnd, value: last.value }];
+        const latestPoint = hrSeries[hrSeries.length - 1];
+        if (expectedDuration && latestPoint.time < expectedDuration) {
+          hrSeries = [...hrSeries, { time: expectedDuration, value: latestPoint.value }];
         }
       }
 
@@ -599,7 +967,7 @@
         .call(
           d3
             .axisBottom(currentXScale)
-            .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
+            .ticks(Math.min(6, Math.ceil(totalDuration / 160)))
             .tickFormat((value) => formatTime(value))
         )
         .call((g) => {
@@ -641,7 +1009,6 @@
         .attr("y", 0)
         .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1))
         .attr("height", height)
-        .attr("fill", intensityPalette.rest.color)
         .attr("opacity", 0.2);
 
       const paceBars = plotGroup
@@ -679,35 +1046,7 @@
             .y((d) => hrScale(d.value))(hrSeries)
         );
 
-      const pacePoints = plotGroup
-        .selectAll(".pace-point")
-        .data(paceSeries)
-        .enter()
-        .append("circle")
-        .attr("class", "pace-point")
-        .attr("cx", (d) => currentXScale(d.time))
-        .attr("cy", (d) => paceScale(d.value))
-        .attr("r", 4)
-        .attr("fill", "#91BDCD")
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 1.2)
-        .on("pointerenter", (event, datum) => {
-          tooltip
-            .style("display", "block")
-            .html(`
-              <strong>${datum.label}</strong><br/>
-              Pace: ${formatPace(datum.value)}<br/>
-              Avg HR: ${datum.rep_avg_hr ? datum.rep_avg_hr.toFixed(0) : "n/a"} bpm<br/>
-              Duration: ${formatTime(datum.duration)}<br/>
-              Intensity: ${(intensityPalette[datum.intensity] ?? intensityPalette.medium).label}
-            `);
-        })
-        .on("pointermove", (event) => {
-          tooltip
-            .style("left", `${event.pageX + 12}px`)
-            .style("top", `${event.pageY - 12}px`);
-        })
-        .on("pointerleave", () => tooltip.style("display", "none"));
+      // Removed pace point markers per latest requirements
 
       const focusGroup = plotGroup.append("g").attr("class", "focus-group");
       const focusLine = focusGroup
@@ -716,7 +1055,6 @@
         .attr("y1", 0)
         .attr("y2", height);
       const focusHrDot = focusGroup.append("circle").attr("class", "focus-dot hr");
-      const focusPaceDot = focusGroup.append("circle").attr("class", "focus-dot pace");
       const focusHandle = focusGroup
         .append("circle")
         .attr("class", "focus-handle")
@@ -900,14 +1238,7 @@
           focusHrDot.style("display", "none");
         }
 
-        if (paceValue != null && nearestPace) {
-          focusPaceDot
-            .attr("cx", currentXScale(nearestPace.time))
-            .attr("cy", paceScale(paceValue))
-            .style("display", "block");
-        } else {
-          focusPaceDot.style("display", "none");
-        }
+        // Pace focus dot removed
 
         lastFocusTime = time;
         updateReadout({
@@ -924,7 +1255,7 @@
           .call(
             d3
               .axisBottom(currentXScale)
-              .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
+              .ticks(Math.min(6, Math.ceil(totalDuration / 160)))
               .tickFormat((value) => formatTime(value))
           )
           .call((g) => {
@@ -948,8 +1279,6 @@
             return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
           });
 
-        pacePoints.attr("cx", (d) => currentXScale(d.time));
-
         hrPath.attr(
           "d",
           d3
@@ -967,6 +1296,14 @@
 
       const defaultFocusTime = domainMax ? domainMax / 2 : segments[0]?.midTime ?? 0;
       handleFocus(null, defaultFocusTime);
+
+    if (!options.suppressClamp && clampLayoutToViewport(chartColumnHeight, chartWrapper)) {
+        window.requestAnimationFrame(() => {
+          if (latestSessionData) {
+            renderChart(latestSessionData, { suppressClamp: true });
+          }
+        });
+      }
     }
 
     hydrateChart();
@@ -1010,66 +1347,17 @@
       return "medium";
     }
 
-    function buildHeartRateSeries(providerDetail, segments, sessionDuration) {
+    function buildHeartRateSeries(providerDetail, segments, sessionDuration, options = {}) {
       if (!providerDetail) {
         return [];
       }
-      const bridgeSamples = providerDetail.bridgeDetail?.heartRate?.samples;
-      if (Array.isArray(bridgeSamples) && bridgeSamples.length) {
-        const reference = new Date(
-          providerDetail.bridgeDetail?.startDate ||
-          providerDetail.startDate ||
-          bridgeSamples[0]?.timestamp ||
-          bridgeSamples[0]?.startDate ||
-          Date.now()
-        ).getTime();
-        return bridgeSamples
-          .filter((sample) => sample?.value != null)
-          .map((sample) => ({
-            time: Math.max(
-              0,
-              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
-            ),
-            value: sample.value,
-          }))
-          .sort((a, b) => a.time - b.time);
+      const { samples, referenceSeconds } = extractHeartRateSamples(providerDetail);
+      if (!samples.length) {
+        return [];
       }
-
-      if (providerDetail.heartRate?.samples?.length) {
-        const samples = providerDetail.heartRate.samples;
-        const reference =
-          new Date(providerDetail.startDate || samples[0]?.timestamp || samples[0]?.startDate || Date.now()).getTime();
-        return samples
-          .filter((sample) => sample.value != null)
-          .map((sample) => ({
-            time: Math.max(
-              0,
-              (new Date(sample.timestamp || sample.startDate || sample.endTimestamp || reference).getTime() - reference) / 1000
-            ),
-            value: sample.value,
-          }))
-          .sort((a, b) => a.time - b.time);
-      }
-
-      if (Array.isArray(providerDetail.records)) {
-        const timestampEntry = providerDetail.records.find((rec) => rec.timestamp || rec.startTime);
-        const reference = timestampEntry ? new Date(timestampEntry.timestamp || timestampEntry.startTime).getTime() : null;
-        if (!reference) {
-          return [];
-        }
-        return providerDetail.records
-          .filter((rec) => typeof rec.heartRate === "number")
-          .map((rec) => ({
-            time: Math.max(
-              0,
-              (new Date(rec.timestamp || rec.startTime).getTime() - reference) / 1000
-            ),
-            value: rec.heartRate,
-          }))
-          .sort((a, b) => a.time - b.time);
-      }
-
-      return [];
+      const referenceOverride = Number.isFinite(options.referenceSeconds) ? options.referenceSeconds : referenceSeconds;
+      const clipRange = Array.isArray(options.clipRange) ? options.clipRange : null;
+      return projectHeartRateSamples(samples, referenceOverride, clipRange);
     }
 
     function findNearestSample(series, target) {
@@ -1148,6 +1436,160 @@
         )
         .join("");
     }
+
+    function extractHeartRateSamples(providerDetail) {
+      if (!providerDetail) {
+        return { samples: [], referenceSeconds: null };
+      }
+      const bridgeSamples = providerDetail.bridgeDetail?.heartRate?.samples;
+      if (Array.isArray(bridgeSamples) && bridgeSamples.length) {
+        return normalizeHeartRateSamples(
+          bridgeSamples,
+          providerDetail.bridgeDetail?.startDate ||
+            providerDetail.startDate ||
+            bridgeSamples[0]?.timestamp ||
+            bridgeSamples[0]?.startDate ||
+            bridgeSamples[0]?.endTimestamp,
+          (sample) => sample.value
+        );
+      }
+
+      const directSamples = providerDetail.heartRate?.samples;
+      if (Array.isArray(directSamples) && directSamples.length) {
+        return normalizeHeartRateSamples(
+          directSamples,
+          providerDetail.startDate || directSamples[0]?.timestamp || directSamples[0]?.startDate,
+          (sample) => sample.value
+        );
+      }
+
+      if (Array.isArray(providerDetail.records)) {
+        const referenceCandidate =
+          providerDetail.startDate ||
+          providerDetail.records.find((rec) => rec?.timestamp || rec?.startTime)?.timestamp ||
+          providerDetail.records.find((rec) => rec?.timestamp || rec?.startTime)?.startTime;
+        return normalizeHeartRateSamples(
+          providerDetail.records,
+          referenceCandidate,
+          (sample) => sample.heartRate,
+          ["timestamp", "startTime"]
+        );
+      }
+
+      return { samples: [], referenceSeconds: null };
+    }
+
+    function normalizeHeartRateSamples(rawSamples, fallbackReference, valueAccessor, timeFieldOrder = ["timestamp", "startDate", "startTime", "endTimestamp"]) {
+      if (!Array.isArray(rawSamples) || !rawSamples.length || typeof valueAccessor !== "function") {
+        return { samples: [], referenceSeconds: parseEventTimestamp(fallbackReference) ?? null };
+      }
+      const normalized = rawSamples
+        .map((sample) => {
+          const value = valueAccessor(sample);
+          if (value == null || Number.isNaN(value)) {
+            return null;
+          }
+          const fieldName = timeFieldOrder.find((field) => sample?.[field] != null);
+          const epochSeconds = parseEventTimestamp(fieldName ? sample[fieldName] : null);
+          if (epochSeconds == null) {
+            return null;
+          }
+          return { epochSeconds, value };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.epochSeconds - b.epochSeconds);
+      const referenceSeconds = parseEventTimestamp(fallbackReference) ?? normalized[0]?.epochSeconds ?? null;
+      return { samples: normalized, referenceSeconds };
+    }
+
+    function projectHeartRateSamples(samples, referenceSeconds, clipRange) {
+      if (!samples.length) {
+        return [];
+      }
+      const baseline = Number.isFinite(referenceSeconds) ? referenceSeconds : samples[0].epochSeconds;
+      const [clipStart, clipEnd] = Array.isArray(clipRange) ? clipRange : [null, null];
+      const epsilon = 0.0001;
+      return samples
+        .map((sample) => ({
+          time: Math.max(0, sample.epochSeconds - baseline),
+          value: sample.value,
+        }))
+        .filter((sample) => {
+          const withinStart = clipStart == null || sample.time + epsilon >= clipStart;
+          const withinEnd = clipEnd == null || sample.time - epsilon <= clipEnd;
+          return withinStart && withinEnd;
+        });
+    }
+
+    function applyActualSegmentTimings(segments, providerDetail, referenceSeconds) {
+      if (!Array.isArray(segments) || !segments.length) {
+        return;
+      }
+      const activities = providerDetail?.workoutActivities;
+      if (!Array.isArray(activities) || !activities.length) {
+        return;
+      }
+      const baseline = Number.isFinite(referenceSeconds) ? referenceSeconds : getSessionReferenceSeconds(providerDetail);
+      if (!Number.isFinite(baseline)) {
+        return;
+      }
+      segments.forEach((segment, index) => {
+        const activity = activities[index];
+        if (!activity) {
+          return;
+        }
+        const startEpoch = parseEventTimestamp(activity.start);
+        const endEpoch = parseEventTimestamp(activity.end);
+        if (!Number.isFinite(startEpoch) || !Number.isFinite(endEpoch)) {
+          return;
+        }
+        const startTime = convertTimestampToElapsedSeconds(startEpoch, baseline);
+        const endTime = convertTimestampToElapsedSeconds(endEpoch, baseline);
+        if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime < startTime) {
+          return;
+        }
+        segment.startTime = startTime;
+        segment.endTime = endTime;
+        segment.midTime = startTime + (endTime - startTime) / 2;
+      });
+    }
+
+    function convertTimestampToElapsedSeconds(timestampSeconds, baselineSeconds) {
+      if (!Number.isFinite(timestampSeconds) || !Number.isFinite(baselineSeconds)) {
+        return null;
+      }
+      return Math.max(0, timestampSeconds - baselineSeconds);
+    }
+
+    function getSessionReferenceSeconds(providerDetail) {
+      if (!providerDetail) {
+        return null;
+      }
+      return (
+        parseEventTimestamp(providerDetail.startDate) ||
+        parseEventTimestamp(providerDetail.bridgeDetail?.startDate) ||
+        parseEventTimestamp(providerDetail.workoutActivities?.[0]?.start) ||
+        null
+      );
+    }
+
+    function parseEventTimestamp(value) {
+      if (value == null) {
+        return null;
+      }
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value > 1e12 ? value / 1000 : value;
+      }
+      if (typeof value === "string") {
+        const parsed = Date.parse(value);
+        if (Number.isFinite(parsed)) {
+          return parsed / 1000;
+        }
+      }
+      return null;
+    }
   </script>
 </body>
 </html>
+
+

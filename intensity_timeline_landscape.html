@@ -621,9 +621,19 @@
       const columnPaddingTop = columnStyles ? parseFloat(columnStyles.paddingTop || "0") : 0;
       const columnPaddingBottom = columnStyles ? parseFloat(columnStyles.paddingBottom || "0") : 0;
       const usableColumnHeight = Math.max(220, columnClientHeight - columnPaddingTop - columnPaddingBottom);
+      const chartAreaStyles = chartAreaCard ? window.getComputedStyle(chartAreaCard) : null;
+      const chartPaddingTop = chartAreaStyles ? parseFloat(chartAreaStyles.paddingTop || "0") : 0;
+      const chartPaddingBottom = chartAreaStyles ? parseFloat(chartAreaStyles.paddingBottom || "0") : 0;
+      const chartGap = chartAreaStyles
+        ? parseFloat(chartAreaStyles.rowGap || chartAreaStyles.columnGap || chartAreaStyles.gap || "0")
+        : 0;
+      const chartStructuralSpacing = chartPaddingTop + chartPaddingBottom + chartGap;
       const legendHeight = legendEl?.offsetHeight ?? 0;
-      const legendSpacing = 12;
-      const targetInnerHeight = Math.max(180, usableColumnHeight - legendHeight - legendSpacing);
+      const legendSpacing = chartGap || 12;
+      const targetInnerHeight = Math.max(
+        180,
+        usableColumnHeight - legendHeight - legendSpacing - chartStructuralSpacing
+      );
       const targetColumnHeight = columnClientHeight;
 
       logLayoutDebug("sizing computed", {

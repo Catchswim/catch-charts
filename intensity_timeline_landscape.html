@@ -249,7 +249,7 @@
       overflow-y: auto;
       align-self: stretch;
       box-sizing: border-box;
-      height: 100%;
+      height: calc(90vh - 40px);
       touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -345,7 +345,7 @@
     const loadingEl = document.getElementById("loading");
     let width = 1400;
     let height = 720;
-    const margin = { top: 12, right: 80, bottom: 32, left: 90 };
+    const margin = { top: 12, right: 80, bottom: 12, left: 70 };
     const DURATION_ALIGNMENT_TOLERANCE = 0.02;
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const urlParams = new URLSearchParams(window.location.search);

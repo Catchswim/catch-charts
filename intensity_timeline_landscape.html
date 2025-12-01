@@ -79,7 +79,7 @@
       height: var(--available-height);
       background: var(--body-background-color);
       align-items: flex-start;
-      justify-content: flex-start;
+      justify-content: center;
       padding-top: env(safe-area-inset-top, 0);
       padding-bottom: env(safe-area-inset-bottom, 0);
       box-sizing: border-box;
@@ -110,8 +110,8 @@
       gap: 10px;
       padding: 10px;
       box-sizing: border-box;
-      height: 100%;
       min-height: 0;
+      height: 100%;
     }
 
     .chart-column {
@@ -128,6 +128,7 @@
       border: 1px solid var(--border-color);
       border-radius: 18px;
       background: var(--surface-color);
+      overflow: hidden;
     }
 
     .chart-area {
@@ -145,10 +146,13 @@
 
     .chart-area-inner {
       position: relative;
-      flex: 1;
+      flex: 1 1 auto;
       border-radius: 8px;
-      overflow: hidden;
+      overflow: auto;
       touch-action: none;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 12px;
     }
 
     #chart {
@@ -280,10 +284,10 @@
       align-self: stretch;
       box-sizing: border-box;
       min-height: 0;
+      height: 100%;
       touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
-      height: 100%;
     }
 
     .focus-readout > div {

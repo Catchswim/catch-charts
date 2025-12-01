@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Swim Intensity Timeline · Landscape</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
@@ -19,17 +19,17 @@
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 95%-35px;
+      height: 100%;
       background: #F6FDFF;
       color: #004448;
       overflow: hidden;
-      touch-action: pan-y;
+      touch-action: manipulation;
     }
 
     body {
       display: flex;
       width: 100%;
-      height: 95%-35px;
+      height: 100%;
     }
 
     .page-wrapper {
@@ -43,7 +43,6 @@
       background: transparent;
       display: flex;
       flex-direction: column;
-      height: 95%-35px;
     }
 
     .chart-wrapper {
@@ -51,35 +50,34 @@
       flex: 1;
       display: flex;
       align-items: stretch;
-      gap: 10px;
-      padding: 10px;
+      gap: 16px;
+      padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: calc(95% - 35px);
-      max-height: calc(95% - 35px);
+      height: calc(90vh - 40px);
+      max-height: calc(90vh - 40px);
     }
 
     .chart-column {
-      flex: 1 1 70%;
+      flex: 1 1 0%;
       min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      min-height: 0;
     }
 
     .chart-area {
       position: relative;
       flex: 1;
-      min-height: 240px;
+      min-height: 260px;
       border-radius: 14px;
       background: #ffffff;
       border: 1px solid #CFC4DB;
-      overflow: hidden;
+      overflow: visible;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 5px;
+      gap: 16px;
+      padding: 16px;
       box-sizing: border-box;
     }
 
@@ -87,8 +85,7 @@
       position: relative;
       flex: 1;
       border-radius: 8px;
-      overflow: hidden;
-      touch-action: none;
+      overflow: visible;
     }
 
     #chart {
@@ -148,7 +145,6 @@
       font-weight: 400;
       color: #004448;
       flex-wrap: wrap;
-      margin: 5px;
     }
 
     .legend-dot {
@@ -203,8 +199,8 @@
 
     .focus-readout {
       flex: 0 0 auto;
-      max-width: 28%;
-      min-width: 100px;
+      max-width: 24%;
+      min-width: 220px;
       padding: 16px;
       border-radius: 12px;
       border: 1px solid #CFC4DB;
@@ -212,20 +208,19 @@
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
-      gap: 10px 14px;
-      font-size: 12px;
+      gap: 12px 18px;
+      font-size: 13px;
       overflow-y: auto;
       align-self: stretch;
       box-sizing: border-box;
-      min-height: 0;
+      height: 100%;
     }
 
     .focus-readout > div {
-      display: flex;
+      display: inline-flex;
       flex-direction: column;
       gap: 4px;
-      min-width: 120px;
-      max-width: calc(100% - 16px);
+      min-width: 140px;
     }
 
     .focus-readout .label {
@@ -236,7 +231,7 @@
     }
 
     .focus-readout .value {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 600;
       letter-spacing: 0.01em;
     }
@@ -310,7 +305,7 @@
     const readoutEl = document.getElementById("focus-readout");
     let width = 1400;
     let height = 720;
-    const margin = { top: 8, right: 80, bottom: 26, left: 70 };
+    const margin = { top: 12, right: 80, bottom: 32, left: 90 };
     const loadingEl = document.getElementById("loading");
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/swim-timeline";
     const intensityPalette = {
@@ -429,15 +424,23 @@
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1600;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-      const wrapperHeight = Math.max(200, chartWrapper?.clientHeight ?? viewportHeight * 0.9);
+      const wrapperHeight = Math.max(
+        200,
+        Math.min(chartWrapper?.clientHeight ?? viewportHeight, viewportHeight * 0.9) - 40
+      );
       const columnGap = chartColumn
         ? parseFloat(getComputedStyle(chartColumn).rowGap || getComputedStyle(chartColumn).gap || "0")
         : 0;
       const legendHeight = legendEl?.offsetHeight ?? 0;
       const readoutHeight = focusReadoutEl?.offsetHeight ?? 0;
+      const columnHeight = chartColumn?.getBoundingClientRect()?.height ?? wrapperHeight;
       const reservedHeight = legendHeight + columnGap;
-      let chartAreaHeight = wrapperHeight - reservedHeight;
-      chartAreaHeight = Math.max(240, chartAreaHeight);
+
+      let chartAreaHeight = columnHeight - reservedHeight;
+      if (!Number.isFinite(chartAreaHeight) || chartAreaHeight <= 0) {
+        chartAreaHeight = Math.max(260, wrapperHeight * 0.6);
+      }
+      chartAreaHeight = Math.max(260, Math.min(chartAreaHeight, viewportHeight * 0.55));
 
       if (chartArea) {
         chartArea.style.height = `${chartAreaHeight}px`;
@@ -446,7 +449,7 @@
         focusReadoutEl.style.height = `${chartAreaHeight}px`;
       }
 
-      const chartWidth = chartArea?.clientWidth ?? Math.max(900, viewportWidth * 0.65);
+      const chartWidth = chartArea?.clientWidth ?? Math.max(1100, viewportWidth * 0.7);
       const availablePlotWidth = Math.max(600, chartWidth - margin.left - margin.right);
 
       width = availablePlotWidth;
@@ -596,7 +599,7 @@
         .call(
           d3
             .axisBottom(currentXScale)
-            .ticks(Math.min(6, Math.ceil(totalDuration / 160)))
+            .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
             .tickFormat((value) => formatTime(value))
         )
         .call((g) => {
@@ -921,7 +924,7 @@
           .call(
             d3
               .axisBottom(currentXScale)
-              .ticks(Math.min(6, Math.ceil(totalDuration / 160)))
+              .ticks(Math.min(8, Math.ceil(totalDuration / 120)))
               .tickFormat((value) => formatTime(value))
           )
           .call((g) => {

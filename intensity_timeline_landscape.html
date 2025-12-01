@@ -23,10 +23,11 @@
       --rest-block-color: #E5E5E5;
       --axis-text-color: #004448;
       --legend-color: #004448;
-      --container-height: 90vh;
       font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text-color);
       background: var(--background-color);
+      --landscape-height: calc(50vh - 35px);
+      --available-height: 100vh;
     }
 
     :root.dark-mode {
@@ -85,12 +86,11 @@
       width: 100%;
       max-width: 1600px;
       margin: 0 auto;
-      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+      padding: 0;
       box-sizing: border-box;
       background: transparent;
       display: flex;
       flex-direction: column;
-      height: var(--container-height);
     }
 
     .chart-wrapper {
@@ -103,7 +103,8 @@
       padding: 16px;
       box-sizing: border-box;
       min-height: 0;
-      height: 100%;
+      height: calc(90vh - 40px);
+      max-height: calc(90vh - 40px);
     }
 
     .chart-column {
@@ -112,7 +113,6 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      min-height: 0;
     }
 
     .chart-area {
@@ -122,7 +122,7 @@
       border-radius: 14px;
       background: var(--surface-color);
       border: 1px solid var(--border-color);
-      overflow: hidden;
+      overflow: visible;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -190,13 +190,13 @@
 
     .legend {
       display: flex;
-      gap: 1rem;
-      font-size: 12px;
+      gap: 0.75rem;
+      font-size: 10px;
       font-weight: 400;
       color: var(--legend-color);
       flex-wrap: wrap;
-      margin: 0;
-      line-height: 1.2;
+      margin: 8px 0 0;
+      line-height: 1.1;
     }
 
     .legend-dot {
@@ -265,7 +265,6 @@
       overflow-y: auto;
       align-self: stretch;
       box-sizing: border-box;
-      min-height: 0;
       height: 100%;
       touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
@@ -273,11 +272,10 @@
     }
 
     .focus-readout > div {
-      display: flex;
+      display: inline-flex;
       flex-direction: column;
       gap: 4px;
-      min-width: 120px;
-      max-width: calc(100% - 16px);
+      min-width: 140px;
     }
 
     .focus-readout .label {
@@ -353,17 +351,15 @@
   <div class="page-wrapper">
     <div class="chart-wrapper">
       <div class="chart-column">
-          <div class="chart-column-scroll">
         <div class="chart-area">
           <div class="chart-area-inner">
             <div id="chart"></div>
-              </div>
           </div>
-          <div class="legend">
-            <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
-            <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-            <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
-          </div>
+        </div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+          <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+          <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
         </div>
       </div>
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>
@@ -702,7 +698,7 @@
     function applyAvailableHeight() {
       const forced = getForcedHeightParam();
       if (forced != null && forced > 0) {
-        document.documentElement.style.setProperty("--container-height", `${forced}px`);
+        document.documentElement.style.setProperty("--available-height", `${forced}px`);
         return;
       }
 
@@ -710,7 +706,7 @@
       const height = viewport?.height ?? window.innerHeight ?? document.documentElement?.clientHeight ?? 600;
       const insetTop = viewport?.offsetTop ?? 0;
       const safeHeight = Math.max(320, Math.round(height - insetTop));
-      document.documentElement.style.setProperty("--container-height", `${safeHeight}px`);
+      document.documentElement.style.setProperty("--available-height", `${safeHeight}px`);
     }
 
     applyAvailableHeight();

@@ -716,7 +716,19 @@
       }
     }
 
+    function getForcedHeightParam() {
+      const params = new URLSearchParams(window.location.search);
+      const forced = parseFloat(params.get("vh") || params.get("height") || "");
+      return Number.isFinite(forced) ? forced : null;
+    }
+
     function applyAvailableHeight() {
+      const forced = getForcedHeightParam();
+      if (forced != null && forced > 0) {
+        document.documentElement.style.setProperty("--available-height", `${forced}px`);
+        return;
+      }
+
       const viewport = window.visualViewport;
       const height = viewport?.height ?? window.innerHeight ?? document.documentElement?.clientHeight ?? 600;
       const insetTop = viewport?.offsetTop ?? 0;

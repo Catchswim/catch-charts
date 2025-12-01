@@ -80,8 +80,6 @@
       background: var(--body-background-color);
       align-items: flex-start;
       justify-content: center;
-      padding-top: env(safe-area-inset-top, 0);
-      padding-bottom: env(safe-area-inset-bottom, 0);
       box-sizing: border-box;
     }
 
@@ -91,7 +89,7 @@
       width: 100%;
       max-width: 1600px;
       margin: 0 auto;
-      padding: 0;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
       box-sizing: border-box;
       background: transparent;
       display: flex;
@@ -128,7 +126,9 @@
       border: 1px solid var(--border-color);
       border-radius: 18px;
       background: var(--surface-color);
-      overflow: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
     .chart-area {
@@ -148,11 +148,8 @@
       position: relative;
       flex: 1 1 auto;
       border-radius: 8px;
-      overflow: auto;
+      overflow: hidden;
       touch-action: none;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 12px;
     }
 
     #chart {

@@ -94,8 +94,8 @@
       background: transparent;
       display: flex;
       flex-direction: column;
-      min-height: var(--available-height);
-      height: var(--available-height);
+      min-height: calc(var(--available-height) - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+      height: calc(var(--available-height) - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
       justify-content: flex-start;
     }
 
@@ -126,6 +126,14 @@
       border: 1px solid var(--border-color);
       border-radius: 18px;
       background: var(--surface-color);
+      overflow: hidden;
+    }
+
+    .chart-column-scroll {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       overflow-y: auto;
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
@@ -367,16 +375,18 @@
   <div class="rotate-overlay">Rotate your device for the optimal landscape view.</div>
   <div class="page-wrapper">
     <div class="chart-wrapper">
-      <div class="chart-column">
-        <div class="chart-area">
-          <div class="chart-area-inner">
-            <div id="chart"></div>
-          </div>
-          <div class="legend">
-            <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
-            <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
-            <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
-          </div>
+        <div class="chart-column">
+          <div class="chart-column-scroll">
+            <div class="chart-area">
+              <div class="chart-area-inner">
+                <div id="chart"></div>
+              </div>
+            </div>
+            <div class="legend">
+              <span><span class="legend-dot" style="background:#E45F5D"></span>Heart rate (bpm)</span>
+              <span><span class="legend-dot" style="background:#91BDCD"></span>Pace (per 100 m)</span>
+              <span><span class="legend-dot" style="background:var(--rest-block-color)"></span>Rest periods</span>
+            </div>
         </div>
       </div>
       <div id="focus-readout" class="focus-readout empty">Tap anywhere to find out more.</div>

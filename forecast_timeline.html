@@ -411,7 +411,7 @@
         .append("circle")
         .attr("class", d => {
           if (d.has_primary_race || d.has_secondary_race) return 'dot dot-race';
-          if (d.is_deload) return 'dot dot-deload';
+          if (d.is_deload && !d.has_race_prep) return 'dot dot-deload';
           return 'dot dot-normal';
         })
         .attr("cx", d => xScale(d.week_number))

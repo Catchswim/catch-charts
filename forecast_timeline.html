@@ -193,8 +193,40 @@
     const tooltip = d3.select("#tooltip");
     const loading = d3.select("#loading");
 
+    const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/forecast-training-plan";
+
     let margin = { top: 120, right: 40, bottom: 40, left: 40 };
     let width, height;
+
+    function parseToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("token");
+    }
+
+    function parseUserId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("userId");
+    }
+
+    async function fetchForecast(userId, token) {
+      const headers = new Headers({ 
+        "accept": "application/json",
+        "content-type": "application/json"
+      });
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      const resp = await fetch(functionUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ userId })
+      });
+      if (!resp.ok) {
+        throw new Error(`Function returned ${resp.status}`);
+      }
+      const data = await resp.json();
+      return data.payload || data;
+    }
 
     function updateDimensions() {
       const container = document.getElementById("chart-container");
@@ -204,9 +236,15 @@
 
     function applyTheme() {
       const params = new URLSearchParams(window.location.search);
-      const isDark = params.get('theme') === 'dark' || 
-                    params.get('mode') === 'dark' || 
-                    window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+      const theme = params.get('theme') || params.get('mode') || params.get('appearance');
+      let isDark = false;
+      
+      if (theme) {
+        isDark = theme.toLowerCase().includes('dark');
+      } else {
+        isDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+      }
+      
       document.documentElement.classList.toggle("dark-mode", isDark);
     }
     applyTheme();
@@ -215,11 +253,24 @@
       try {
         const params = new URLSearchParams(window.location.search);
         const dataParam = params.get('data');
+        const token = parseToken();
+        const userId = parseUserId();
         
         let data;
         if (dataParam) {
-          data = JSON.parse(decodeURIComponent(dataParam));
-        } else {
+          try {
+            data = JSON.parse(decodeURIComponent(dataParam));
+          } catch (e) {
+            console.warn("Failed to parse data param, will try to fetch if userId/token available");
+          }
+        }
+
+        if (!data && userId && token) {
+          loading.text("Fetching forecast...");
+          data = await fetchForecast(userId, token);
+        }
+
+        if (!data) {
           // Default placeholder matches the provided JSON structure
           data = {
             weeks: [
@@ -246,7 +297,7 @@
         });
       } catch (e) {
         console.error("Error initializing chart:", e);
-        loading.text("Error loading forecast data.");
+        loading.text("Error: " + e.message);
       }
     }
 

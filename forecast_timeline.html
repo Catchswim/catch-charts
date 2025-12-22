@@ -56,7 +56,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 10px 0;
+      padding: 0;
       box-sizing: border-box;
       overflow: hidden;
     }
@@ -83,8 +83,8 @@
 
     .axis text {
       fill: var(--axis-text-color);
-      font-size: 18px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 600;
       font-family: inherit;
     }
 
@@ -92,17 +92,28 @@
       stroke: none;
     }
 
+    .grid line {
+      stroke: var(--border-color);
+      stroke-opacity: 0.15;
+      shape-rendering: crispEdges;
+    }
+
+    .grid path {
+      stroke-width: 0;
+    }
+
     .line {
       fill: none;
       stroke: var(--line-color);
-      stroke-width: 5;
+      stroke-width: 4;
       stroke-linejoin: round;
       stroke-linecap: round;
+      opacity: 0.8;
     }
 
     .dot {
-      stroke: #FFFFFF;
-      stroke-width: 3;
+      stroke: var(--background-color);
+      stroke-width: 2;
       cursor: pointer;
       transition: r 0.2s ease;
     }
@@ -117,8 +128,8 @@
 
     .focus-line {
       stroke: var(--focus-line-color);
-      stroke-width: 2;
-      stroke-dasharray: 8 5;
+      stroke-width: 1.5;
+      stroke-dasharray: 6 4;
       display: none;
     }
 
@@ -126,24 +137,24 @@
       position: absolute;
       background: var(--tooltip-background);
       color: var(--tooltip-text);
-      padding: 18px 25px;
-      border-radius: 28px;
+      padding: 12px 20px;
+      border-radius: 20px;
       pointer-events: none;
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       z-index: 100;
       transform: translate(-50%, -100%);
       margin-top: -15px;
     }
 
     .tooltip .week-label {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       letter-spacing: 0.05em;
       opacity: 0.7;
     }
@@ -151,17 +162,17 @@
     .tooltip .distance-value {
       font-size: 18px;
       font-weight: 600;
-      line-height: 1;
-      margin-bottom: 8px;
+      line-height: 1.2;
+      margin-bottom: 4px;
     }
 
     .tooltip .info-row {
-      font-size: 14px;
-      font-weight: 600;
-      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 2px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .tooltip .race-row {
@@ -177,7 +188,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--muted-text-color);
     }
@@ -203,7 +214,7 @@
 
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/forecast-training-plan";
 
-    let margin = { top: 120, right: 40, bottom: 40, left: 40 };
+    let margin = { top: 80, right: 40, bottom: 40, left: 60 };
     let width, height;
 
     function parseToken() {
@@ -238,10 +249,10 @@
 
     function updateDimensions(weekCount = 8) {
       const container = document.getElementById("chart-container");
-      // Use a fixed width per week to enable horizontal scrolling
       const weekWidth = 100; 
       width = Math.max(container.clientWidth, weekCount * weekWidth) - margin.left - margin.right;
-      height = container.clientHeight - margin.top - margin.bottom;
+      // Set a fixed height if clientHeight is too small (e.g. initial load in WebView)
+      height = Math.max(container.clientHeight, 250) - margin.top - margin.bottom;
     }
 
     function applyTheme() {
@@ -324,7 +335,7 @@
         .range([0, width]);
 
       const yScale = d3.scaleLinear()
-        .domain([0, d3.max(weeks, d => d.weekly_total_distance) * 1.3])
+        .domain([0, d3.max(weeks, d => d.weekly_total_distance) * 1.2])
         .range([height, 0])
         .nice();
 
@@ -336,10 +347,19 @@
           .tickFormat(d => d === 0 ? "0" : d >= 1000 ? (d/1000) + "k" : d)
         );
 
+      // Horizontal Grid Lines
+      svg.append("g")
+        .attr("class", "grid")
+        .call(d3.axisLeft(yScale)
+          .ticks(5)
+          .tickSize(-width)
+          .tickFormat("")
+        );
+
       // X Axis
       svg.append("g")
         .attr("class", "axis x-axis")
-        .attr("transform", `translate(0,${height + 40})`)
+        .attr("transform", `translate(0,${height})`)
         .call(d3.axisBottom(xScale)
           .ticks(weeks.length)
           .tickFormat("") // Removed x axis labels
@@ -348,8 +368,8 @@
       // Focus Line
       const focusLine = svg.append("line")
         .attr("class", "focus-line")
-        .attr("y1", -80)
-        .attr("y2", height + 20);
+        .attr("y1", -40)
+        .attr("y2", height);
 
       // Path
       const lineGenerator = d3.line()
@@ -370,13 +390,12 @@
         .attr("class", d => `dot ${d.has_primary_race || d.has_secondary_race ? 'dot-race' : 'dot-normal'}`)
         .attr("cx", d => xScale(d.week_number))
         .attr("cy", d => yScale(d.weekly_total_distance))
-        .attr("r", d => d.has_primary_race || d.has_secondary_race ? 12 : 8);
+        .attr("r", d => d.has_primary_race || d.has_secondary_race ? 10 : 7);
 
       // Overlay
       const overlay = svg.append("rect")
         .attr("width", width)
-        .attr("height", height + margin.bottom)
-        .attr("y", 0)
+        .attr("height", height)
         .attr("fill", "transparent")
         .style("cursor", "crosshair");
 
@@ -449,8 +468,8 @@
       // Animate dots on focus
       d3.selectAll(".dot").attr("r", dot => 
         dot.week_number === d.week_number ? 
-        (dot.has_primary_race || dot.has_secondary_race ? 15 : 11) : 
-        (dot.has_primary_race || dot.has_secondary_race ? 12 : 8)
+        (dot.has_primary_race || dot.has_secondary_race ? 13 : 9) : 
+        (dot.has_primary_race || dot.has_secondary_race ? 10 : 7)
       );
 
       // Auto-scroll to current week if first time showing

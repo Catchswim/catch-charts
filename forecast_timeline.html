@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Training Forecast Plan</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap");
+
+    :root {
+      --background-color: #FFFFFF;
+      --body-background-color: #FFFFFF;
+      --text-color: #004448;
+      --muted-text-color: rgba(0, 68, 72, 0.4);
+      --surface-color: #ffffff;
+      --border-color: #CFC4DB;
+      --tooltip-background: #000000;
+      --tooltip-text: #FFFFFF;
+      --line-color: #1A3E3E;
+      --dot-normal: #CFC4DB;
+      --dot-race: #E45F5D;
+      --axis-text-color: #91BDCD;
+      --focus-line-color: #91BDCD;
+      font-family: "Poppins", sans-serif;
+      color: var(--text-color);
+      background: var(--background-color);
+    }
+
+    :root.dark-mode {
+      --background-color: #151820;
+      --body-background-color: #151820;
+      --text-color: #f6fdff;
+      --muted-text-color: rgba(229, 251, 252, 0.4);
+      --surface-color: #151820;
+      --border-color: #CFC4DB;
+      --tooltip-background: #000000;
+      --tooltip-text: #FFFFFF;
+      --line-color: #f6fdff;
+      --dot-normal: #CFC4DB;
+      --dot-race: #E45F5D;
+      --axis-text-color: #91BDCD;
+      --focus-line-color: #91BDCD;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--body-background-color);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .chart-wrapper {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 20px;
+      box-sizing: border-box;
+    }
+
+    #chart-container {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    .axis text {
+      fill: var(--axis-text-color);
+      font-size: 18px;
+      font-weight: 800;
+      font-family: inherit;
+    }
+
+    .axis line, .axis path {
+      stroke: none;
+    }
+
+    .line {
+      fill: none;
+      stroke: var(--line-color);
+      stroke-width: 5;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    .dot {
+      stroke: #FFFFFF;
+      stroke-width: 3;
+      cursor: pointer;
+      transition: r 0.2s ease;
+    }
+
+    .dot-normal {
+      fill: #CFC4DB;
+    }
+
+    .dot-race {
+      fill: #E45F5D;
+    }
+
+    .focus-line {
+      stroke: var(--focus-line-color);
+      stroke-width: 2;
+      stroke-dasharray: 8 5;
+      display: none;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: var(--tooltip-background);
+      color: var(--tooltip-text);
+      padding: 18px 25px;
+      border-radius: 28px;
+      pointer-events: none;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      z-index: 100;
+      transform: translate(-50%, -100%);
+      margin-top: -15px;
+    }
+
+    .tooltip .week-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+
+    .tooltip .distance-value {
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .tooltip .info-row {
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tooltip .race-row {
+      color: #E45F5D;
+    }
+
+    .tooltip .prep-row {
+      color: #91BDCD;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--muted-text-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="chart-wrapper">
+    <div id="chart-container">
+      <div id="loading">Loading training plan...</div>
+      <div id="chart"></div>
+      <div class="tooltip" id="tooltip">
+        <div class="week-label" id="tooltip-date-range">21 Dec - 28 Dec</div>
+        <div class="distance-value" id="tooltip-distance">10,740m</div>
+        <div id="tooltip-extra-info"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chartContainer = d3.select("#chart");
+    const tooltip = d3.select("#tooltip");
+    const loading = d3.select("#loading");
+
+    let margin = { top: 120, right: 40, bottom: 40, left: 40 };
+    let width, height;
+
+    function updateDimensions() {
+      const container = document.getElementById("chart-container");
+      width = container.clientWidth - margin.left - margin.right;
+      height = container.clientHeight - margin.top - margin.bottom;
+    }
+
+    function applyTheme() {
+      const params = new URLSearchParams(window.location.search);
+      const isDark = params.get('theme') === 'dark' || 
+                    params.get('mode') === 'dark' || 
+                    window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+      document.documentElement.classList.toggle("dark-mode", isDark);
+    }
+    applyTheme();
+
+    async function init() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const dataParam = params.get('data');
+        
+        let data;
+        if (dataParam) {
+          data = JSON.parse(decodeURIComponent(dataParam));
+        } else {
+          // Default placeholder matches the provided JSON structure
+          data = {
+            weeks: [
+              { week_number: 19, week_start: "2025-12-22", week_end: "2025-12-28", weekly_total_distance: 5400, has_primary_race: false, has_secondary_race: false, has_race_prep: true, sessions: [{ is_prep: true, session_type_name: "Endurance", target_distance: 1800 }] },
+              { week_number: 20, week_start: "2025-12-29", week_end: "2026-01-04", weekly_total_distance: 5600, has_primary_race: false, has_secondary_race: false, has_race_prep: false, sessions: [] },
+              { week_number: 21, week_start: "2026-01-05", week_end: "2026-01-11", weekly_total_distance: 7200, has_primary_race: false, has_secondary_race: false, has_race_prep: false, sessions: [] },
+              { week_number: 22, week_start: "2026-01-12", week_end: "2026-01-18", weekly_total_distance: 5600, has_primary_race: false, has_secondary_race: false, has_race_prep: true, sessions: [{ is_prep: true, session_type_name: "Endurance", target_distance: 2000 }] },
+              { week_number: 23, week_start: "2026-01-19", week_end: "2026-01-25", weekly_total_distance: 7200, has_primary_race: false, has_secondary_race: false, has_race_prep: false, sessions: [] },
+              { week_number: 24, week_start: "2026-01-26", week_end: "2026-02-01", weekly_total_distance: 4700, has_primary_race: true, primary_race_name: "aero test", primary_race_distance: 2000, has_secondary_race: false, has_race_prep: false, sessions: [] },
+              { week_number: 25, week_start: "2026-02-02", week_end: "2026-02-08", weekly_total_distance: 7200, has_primary_race: false, has_secondary_race: false, has_race_prep: false, sessions: [] },
+              { week_number: 26, week_start: "2026-02-09", week_end: "2026-02-15", weekly_total_distance: 7200, has_primary_race: false, has_secondary_race: false, has_race_prep: false, sessions: [] }
+            ]
+          };
+        }
+
+        loading.style("display", "none");
+        updateDimensions();
+        renderChart(data.weeks);
+        
+        window.addEventListener('resize', () => {
+          chartContainer.selectAll("*").remove();
+          updateDimensions();
+          renderChart(data.weeks);
+        });
+      } catch (e) {
+        console.error("Error initializing chart:", e);
+        loading.text("Error loading forecast data.");
+      }
+    }
+
+    function renderChart(weeks) {
+      const svg = chartContainer.append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const weekNumbers = weeks.map(d => d.week_number);
+      const xScale = d3.scaleLinear()
+        .domain([d3.min(weekNumbers), d3.max(weekNumbers)])
+        .range([0, width]);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(weeks, d => d.weekly_total_distance) * 1.3])
+        .range([height, 0]);
+
+      // X Axis
+      svg.append("g")
+        .attr("class", "axis x-axis")
+        .attr("transform", `translate(0,${height + 40})`)
+        .call(d3.axisBottom(xScale)
+          .ticks(weeks.length)
+          .tickFormat("") // Removed x axis labels
+        );
+
+      // Focus Line
+      const focusLine = svg.append("line")
+        .attr("class", "focus-line")
+        .attr("y1", -80)
+        .attr("y2", height + 20);
+
+      // Path
+      const line = d3.line()
+        .x(d => xScale(d.week_number))
+        .y(d => yScale(d.weekly_total_distance))
+        .curve(d3.curveCatmullRom.alpha(0.5));
+
+      svg.append("path")
+        .datum(weeks)
+        .attr("class", "line")
+        .attr("d", line);
+
+      // Dots
+      const dots = svg.selectAll(".dot")
+        .data(weeks)
+        .enter()
+        .append("circle")
+        .attr("class", d => `dot ${d.has_primary_race || d.has_secondary_race ? 'dot-race' : 'dot-normal'}`)
+        .attr("cx", d => xScale(d.week_number))
+        .attr("cy", d => yScale(d.weekly_total_distance))
+        .attr("r", d => d.has_primary_race || d.has_secondary_race ? 12 : 8);
+
+      // Overlay
+      const overlay = svg.append("rect")
+        .attr("width", width)
+        .attr("height", height + margin.bottom)
+        .attr("y", 0)
+        .attr("fill", "transparent")
+        .style("cursor", "crosshair");
+
+      function handleInteraction(event) {
+        const [mx] = d3.pointer(event);
+        const invertedX = xScale.invert(mx);
+        const week = weeks.reduce((prev, curr) => 
+          Math.abs(curr.week_number - invertedX) < Math.abs(prev.week_number - invertedX) ? curr : prev
+        );
+        
+        if (week) showFocus(week, xScale, yScale);
+      }
+
+      overlay.on("mousemove touchmove", handleInteraction);
+      overlay.on("click", handleInteraction);
+
+      // Initial focus
+      showFocus(weeks[0], xScale, yScale);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+
+    function showFocus(d, xScale, yScale) {
+      const x = xScale(d.week_number);
+      const y = yScale(d.weekly_total_distance);
+
+      const start = formatDate(d.week_start);
+      const end = formatDate(d.week_end);
+      d3.select("#tooltip-date-range").text(`${start} - ${end}`);
+      d3.select("#tooltip-distance").text(`${d.weekly_total_distance.toLocaleString()}m`);
+      
+      const extraInfo = d3.select("#tooltip-extra-info");
+      extraInfo.selectAll("*").remove();
+
+      // Race details
+      if (d.has_primary_race || d.has_secondary_race) {
+        const raceName = d.has_primary_race ? d.primary_race_name : d.secondary_race_name;
+        const raceDist = d.has_primary_race ? d.primary_race_distance : d.secondary_race_distance;
+        if (raceName) {
+          extraInfo.append("div")
+            .attr("class", "info-row race-row")
+            .html(`🏁 ${raceName}: ${raceDist ? raceDist.toLocaleString() + 'm' : ''}`);
+        }
+      }
+
+      // Race Prep
+      if (d.has_race_prep) {
+        const prepSession = d.sessions.find(s => s.is_prep);
+        if (prepSession) {
+          extraInfo.append("div")
+            .attr("class", "info-row prep-row")
+            .text(`${prepSession.session_type_name}: ${prepSession.target_distance.toLocaleString()}m`);
+        }
+      }
+      
+      tooltip
+        .style("display", "flex")
+        .style("left", `${x + margin.left}px`)
+        .style("top", `${y + margin.top}px`);
+
+      d3.select(".focus-line")
+        .style("display", "block")
+        .attr("x1", x)
+        .attr("x2", x);
+
+      // Animate dots on focus
+      d3.selectAll(".dot").attr("r", dot => 
+        dot.week_number === d.week_number ? 
+        (dot.has_primary_race || dot.has_secondary_race ? 15 : 11) : 
+        (dot.has_primary_race || dot.has_secondary_race ? 12 : 8)
+      );
+    }
+
+    init();
+  </script>
+</body>
+</html>

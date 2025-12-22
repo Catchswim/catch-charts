@@ -20,6 +20,7 @@
       --line-color: #1A3E3E;
       --dot-normal: #CFC4DB;
       --dot-race: #E45F5D;
+      --dot-deload: #91BDCD;
       --axis-text-color: #91BDCD;
       --focus-line-color: #91BDCD;
       font-family: "Poppins", sans-serif;
@@ -126,7 +127,11 @@
     }
 
     .dot-race {
-      fill: #E45F5D;
+      fill: var(--dot-race);
+    }
+
+    .dot-deload {
+      fill: var(--dot-deload);
     }
 
     .focus-line {
@@ -404,7 +409,11 @@
         .data(weeks)
         .enter()
         .append("circle")
-        .attr("class", d => `dot ${d.has_primary_race || d.has_secondary_race ? 'dot-race' : 'dot-normal'}`)
+        .attr("class", d => {
+          if (d.has_primary_race || d.has_secondary_race) return 'dot dot-race';
+          if (d.is_deload) return 'dot dot-deload';
+          return 'dot dot-normal';
+        })
         .attr("cx", d => xScale(d.week_number))
         .attr("cy", d => yScale(d.weekly_total_distance))
         .attr("r", d => d.has_primary_race || d.has_secondary_race ? 10 : 7);
@@ -473,7 +482,6 @@
             .text(`${prepSession.session_type_name}: ${prepSession.target_distance.toLocaleString()}m`);
         }
       } else if (d.is_deload && !d.has_primary_race && !d.has_secondary_race) {
-        // Show DELOAD only if it's not a race and not race prep
         extraInfo.append("div")
           .attr("class", "info-row prep-row")
           .style("color", "#91BDCD")
@@ -482,31 +490,47 @@
       
       tooltip.style("display", "flex");
       
+      const container = document.getElementById("chart-container");
       const tooltipNode = tooltip.node();
       const th = tooltipNode.offsetHeight;
       const tw = tooltipNode.offsetWidth;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight || 150;
       
-      // Calculate top position, and flip if it would go out of bounds
+      // 1. Vertical Positioning
       let topPos = y + margin.top;
-      let transformStr = "translate(-50%, -100%)";
-      
-      // Auto-shrink text if tooltip is too tall for the container
-      if (th > 80) {
-        tooltip.style("font-size", "0.9em");
-      } else {
-        tooltip.style("font-size", "1em");
-      }
+      let transformY = "-100%";
+      let verticalOffset = -10; // Gap above the point
 
       if (topPos - th < 5) {
-        // If it overflows the top, push it down below the point instead
-        topPos = y + margin.top + 20;
-        transformStr = "translate(-50%, 0%)";
+        // Flip to bottom if top overflow
+        transformY = "0%";
+        verticalOffset = 15; // Gap below the point
+      }
+      
+      // Check for bottom overflow after flip
+      if (transformY === "0%" && topPos + verticalOffset + th > ch - 5) {
+        // If it still overflows at bottom, push it up as much as possible
+        topPos = Math.max(5, ch - th - 5);
+        transformY = "0%";
+        verticalOffset = 0;
       }
 
+      // 2. Horizontal Positioning (Clamping)
+      let leftPos = x + margin.left;
+      
+      // Clamp the tooltip within the visible container width
+      // Taking the current scroll position into account
+      const scrollLeft = container.scrollLeft;
+      const minLeft = scrollLeft + (tw / 2) + 5;
+      const maxLeft = scrollLeft + cw - (tw / 2) - 5;
+      
+      leftPos = Math.max(minLeft, Math.min(maxLeft, leftPos));
+
       tooltip
-        .style("left", `${x + margin.left}px`)
-        .style("top", `${topPos}px`)
-        .style("transform", transformStr);
+        .style("left", `${leftPos}px`)
+        .style("top", `${topPos + verticalOffset}px`)
+        .style("transform", `translate(-50%, ${transformY})`);
 
       d3.select(".focus-line")
         .style("display", "block")
@@ -522,8 +546,7 @@
 
       // Auto-scroll to current week if first time showing
       if (!window.hasScrolledToCurrent) {
-        const container = document.getElementById("chart-container");
-        container.scrollLeft = Math.max(0, x + margin.left - container.clientWidth / 2);
+        container.scrollLeft = Math.max(0, x + margin.left - cw / 2);
         window.hasScrolledToCurrent = true;
       }
     }

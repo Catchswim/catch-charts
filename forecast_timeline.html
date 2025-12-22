@@ -140,42 +140,51 @@
       position: absolute;
       background: var(--tooltip-background);
       color: var(--tooltip-text);
-      padding: 12px 20px;
-      border-radius: 20px;
+      padding: 10px 20px; /* Reduced padding */
+      border-radius: 16px; /* Slightly tighter corners */
       pointer-events: none;
       display: none;
       flex-direction: column;
       align-items: flex-start;
       justify-content: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
       z-index: 100;
       transform: translate(-50%, -100%);
-      margin-top: -15px;
+      margin-top: -8px;
+      min-width: 140px;
+      max-width: 220px; /* Prevent it from getting too wide */
+      overflow: hidden;
     }
 
     .tooltip .week-label {
-      font-size: 11px;
+      font-size: 10px; /* Shrunk from 11px */
       font-weight: 700;
       text-transform: uppercase;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
       letter-spacing: 0.05em;
       opacity: 0.7;
+      white-space: nowrap;
     }
 
     .tooltip .distance-value {
-      font-size: 18px;
+      font-size: 16px; /* Shrunk from 18px */
       font-weight: 600;
-      line-height: 1.2;
-      margin-bottom: 4px;
+      line-height: 1.1;
+      margin-bottom: 3px;
+      white-space: nowrap;
     }
 
     .tooltip .info-row {
-      font-size: 12px;
+      font-size: 11px; /* Shrunk from 12px */
       font-weight: 500;
-      margin-top: 2px;
+      margin-top: 1px;
       display: flex;
       align-items: center;
       gap: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
     }
 
     .tooltip .race-row {
@@ -217,7 +226,7 @@
 
     const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/forecast-training-plan";
 
-    let margin = { top: 80, right: 40, bottom: 40, left: 60 };
+    let margin = { top: 65, right: 40, bottom: 25, left: 55 };
     let width, height;
 
     function parseToken() {
@@ -255,11 +264,10 @@
       const weekWidth = 60; 
       const minContentWidth = (weekCount * weekWidth) + margin.left + margin.right;
       
-      // Calculate internal drawing width
       width = Math.max(container.clientWidth, minContentWidth) - margin.left - margin.right;
-      height = Math.max(container.clientHeight, 250) - margin.top - margin.bottom;
+      // Adjusted height to fit within the 150px constraint
+      height = (container.clientHeight || 150) - margin.top - margin.bottom;
       
-      // Explicitly set the width of the chart div to force scrollbars in the container
       const chartDiv = document.getElementById("chart");
       chartDiv.style.width = (width + margin.left + margin.right) + "px";
     }
@@ -377,7 +385,7 @@
       // Focus Line
       const focusLine = svg.append("line")
         .attr("class", "focus-line")
-        .attr("y1", -40)
+        .attr("y1", -30)
         .attr("y2", height);
 
       // Path
@@ -467,15 +475,38 @@
       } else if (d.is_deload && !d.has_primary_race && !d.has_secondary_race) {
         // Show DELOAD only if it's not a race and not race prep
         extraInfo.append("div")
-          .attr("class", "info-row prep-row") // Reuse prep-row style for deload
+          .attr("class", "info-row prep-row")
           .style("color", "#91BDCD")
           .text("DELOAD");
       }
       
+      tooltip.style("display", "flex");
+      
+      const tooltipNode = tooltip.node();
+      const th = tooltipNode.offsetHeight;
+      const tw = tooltipNode.offsetWidth;
+      
+      // Calculate top position, and flip if it would go out of bounds
+      let topPos = y + margin.top;
+      let transformStr = "translate(-50%, -100%)";
+      
+      // Auto-shrink text if tooltip is too tall for the container
+      if (th > 80) {
+        tooltip.style("font-size", "0.9em");
+      } else {
+        tooltip.style("font-size", "1em");
+      }
+
+      if (topPos - th < 5) {
+        // If it overflows the top, push it down below the point instead
+        topPos = y + margin.top + 20;
+        transformStr = "translate(-50%, 0%)";
+      }
+
       tooltip
-        .style("display", "flex")
         .style("left", `${x + margin.left}px`)
-        .style("top", `${y + margin.top}px`);
+        .style("top", `${topPos}px`)
+        .style("transform", transformStr);
 
       d3.select(".focus-line")
         .style("display", "block")

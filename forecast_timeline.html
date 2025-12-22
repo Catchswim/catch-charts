@@ -21,6 +21,7 @@
       --dot-normal: #CFC4DB;
       --dot-race: #E45F5D;
       --dot-deload: #FFE9C3;
+      --dot-prep: #91BDCD;
       --axis-text-color: #91BDCD;
       --focus-line-color: #91BDCD;
       font-family: "Poppins", sans-serif;
@@ -132,6 +133,10 @@
 
     .dot-deload {
       fill: var(--dot-deload);
+    }
+
+    .dot-prep {
+      fill: var(--dot-prep);
     }
 
     .focus-line {
@@ -371,7 +376,7 @@
         }
 
         if (!data && userId && token) {
-          loading.text("Fetching forecast...");
+          d3.select("#loading-text").text("Fetching forecast...");
           data = await fetchForecast(userId, token);
         }
 
@@ -402,7 +407,7 @@
         });
       } catch (e) {
         console.error("Error initializing chart:", e);
-        loading.text("Error: " + e.message);
+        d3.select("#loading-text").text("Error: " + e.message);
       }
     }
 
@@ -474,7 +479,8 @@
         .attr("class", d => {
           const hasPrep = d.has_race_prep || (d.sessions && d.sessions.some(s => s.is_prep));
           if (d.has_primary_race || d.has_secondary_race) return 'dot dot-race';
-          if (d.is_deload && !hasPrep) return 'dot dot-deload';
+          if (hasPrep) return 'dot dot-prep'; // Blue priority for prep
+          if (d.is_deload) return 'dot dot-deload'; // Beige for recovery
           return 'dot dot-normal';
         })
         .attr("cx", d => xScale(d.week_number))
@@ -601,11 +607,13 @@
         .attr("x2", x);
 
       // Animate dots on focus
-      d3.selectAll(".dot").attr("r", dot => 
-        dot.week_number === d.week_number ? 
-        (dot.has_primary_race || dot.has_secondary_race ? 13 : 9) : 
-        (dot.has_primary_race || dot.has_secondary_race ? 10 : 7)
-      );
+      d3.selectAll(".dot").attr("r", dot => {
+        const isSelected = dot.week_number === d.week_number;
+        const isBig = dot.has_primary_race || dot.has_secondary_race || (dot.has_race_prep || (dot.sessions && dot.sessions.some(s => s.is_prep)));
+        
+        if (isSelected) return isBig ? 13 : 9;
+        return isBig ? 10 : 7;
+      });
 
       // Auto-scroll to current week if first time showing
       if (!window.hasScrolledToCurrent) {

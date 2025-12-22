@@ -56,14 +56,22 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 10px 20px;
+      padding: 10px 0;
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     #chart-container {
       flex: 1;
       position: relative;
       min-height: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #chart {
+      height: 100%;
     }
 
     svg {
@@ -141,8 +149,8 @@
     }
 
     .tooltip .distance-value {
-      font-size: 32px;
-      font-weight: 900;
+      font-size: 18px;
+      font-weight: 600;
       line-height: 1;
       margin-bottom: 8px;
     }
@@ -228,9 +236,11 @@
       return data.payload || data;
     }
 
-    function updateDimensions() {
+    function updateDimensions(weekCount = 8) {
       const container = document.getElementById("chart-container");
-      width = container.clientWidth - margin.left - margin.right;
+      // Use a fixed width per week to enable horizontal scrolling
+      const weekWidth = 100; 
+      width = Math.max(container.clientWidth, weekCount * weekWidth) - margin.left - margin.right;
       height = container.clientHeight - margin.top - margin.bottom;
     }
 
@@ -287,12 +297,12 @@
         }
 
         loading.style("display", "none");
-        updateDimensions();
+        updateDimensions(data.weeks.length);
         renderChart(data.weeks);
         
         window.addEventListener('resize', () => {
           chartContainer.selectAll("*").remove();
-          updateDimensions();
+          updateDimensions(data.weeks.length);
           renderChart(data.weeks);
         });
       } catch (e) {
@@ -315,7 +325,16 @@
 
       const yScale = d3.scaleLinear()
         .domain([0, d3.max(weeks, d => d.weekly_total_distance) * 1.3])
-        .range([height, 0]);
+        .range([height, 0])
+        .nice();
+
+      // Y Axis
+      svg.append("g")
+        .attr("class", "axis y-axis")
+        .call(d3.axisLeft(yScale)
+          .ticks(5)
+          .tickFormat(d => d === 0 ? "0" : d >= 1000 ? (d/1000) + "k" : d)
+        );
 
       // X Axis
       svg.append("g")
@@ -333,15 +352,15 @@
         .attr("y2", height + 20);
 
       // Path
-      const line = d3.line()
+      const lineGenerator = d3.line()
         .x(d => xScale(d.week_number))
         .y(d => yScale(d.weekly_total_distance))
-        .curve(d3.curveCatmullRom.alpha(0.5));
+        .curve(d3.curveMonotoneX);
 
       svg.append("path")
         .datum(weeks)
         .attr("class", "line")
-        .attr("d", line);
+        .attr("d", lineGenerator);
 
       // Dots
       const dots = svg.selectAll(".dot")
@@ -433,6 +452,13 @@
         (dot.has_primary_race || dot.has_secondary_race ? 15 : 11) : 
         (dot.has_primary_race || dot.has_secondary_race ? 12 : 8)
       );
+
+      // Auto-scroll to current week if first time showing
+      if (!window.hasScrolledToCurrent) {
+        const container = document.getElementById("chart-container");
+        container.scrollLeft = Math.max(0, x + margin.left - container.clientWidth / 2);
+        window.hasScrolledToCurrent = true;
+      }
     }
 
     init();

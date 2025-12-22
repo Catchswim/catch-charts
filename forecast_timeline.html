@@ -68,12 +68,13 @@
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
+      display: block;
+      width: 100%;
     }
 
     #chart {
       height: 100%;
-      display: inline-block; /* Ensure it expands to fit SVG */
-      min-width: 100%;
+      display: block;
     }
 
     svg {
@@ -251,11 +252,16 @@
 
     function updateDimensions(weekCount = 8) {
       const container = document.getElementById("chart-container");
-      const weekWidth = 55; // Reduced from 100 to approx half
-      // Ensure the chart is at least the width of the container
-      const totalContentWidth = (weekCount * weekWidth) + margin.left + margin.right;
-      width = Math.max(container.clientWidth, totalContentWidth) - margin.left - margin.right;
+      const weekWidth = 60; 
+      const minContentWidth = (weekCount * weekWidth) + margin.left + margin.right;
+      
+      // Calculate internal drawing width
+      width = Math.max(container.clientWidth, minContentWidth) - margin.left - margin.right;
       height = Math.max(container.clientHeight, 250) - margin.top - margin.bottom;
+      
+      // Explicitly set the width of the chart div to force scrollbars in the container
+      const chartDiv = document.getElementById("chart");
+      chartDiv.style.width = (width + margin.left + margin.right) + "px";
     }
 
     function applyTheme() {
@@ -400,7 +406,9 @@
         .attr("width", width)
         .attr("height", height)
         .attr("fill", "transparent")
-        .style("cursor", "crosshair");
+        .style("cursor", "crosshair")
+        .style("pointer-events", "all")
+        .style("touch-action", "pan-x"); // Ensure mobile horizontal scrolling works over the chart
 
       function handleInteraction(event) {
         const [mx] = d3.pointer(event);

@@ -72,6 +72,8 @@
 
     #chart {
       height: 100%;
+      display: inline-block; /* Ensure it expands to fit SVG */
+      min-width: 100%;
     }
 
     svg {
@@ -142,7 +144,7 @@
       pointer-events: none;
       display: none;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       z-index: 100;
@@ -249,9 +251,10 @@
 
     function updateDimensions(weekCount = 8) {
       const container = document.getElementById("chart-container");
-      const weekWidth = 100; 
-      width = Math.max(container.clientWidth, weekCount * weekWidth) - margin.left - margin.right;
-      // Set a fixed height if clientHeight is too small (e.g. initial load in WebView)
+      const weekWidth = 55; // Reduced from 100 to approx half
+      // Ensure the chart is at least the width of the container
+      const totalContentWidth = (weekCount * weekWidth) + margin.left + margin.right;
+      width = Math.max(container.clientWidth, totalContentWidth) - margin.left - margin.right;
       height = Math.max(container.clientHeight, 250) - margin.top - margin.bottom;
     }
 
@@ -453,6 +456,12 @@
             .attr("class", "info-row prep-row")
             .text(`${prepSession.session_type_name}: ${prepSession.target_distance.toLocaleString()}m`);
         }
+      } else if (d.is_deload && !d.has_primary_race && !d.has_secondary_race) {
+        // Show DELOAD only if it's not a race and not race prep
+        extraInfo.append("div")
+          .attr("class", "info-row prep-row") // Reuse prep-row style for deload
+          .style("color", "#91BDCD")
+          .text("DELOAD");
       }
       
       tooltip

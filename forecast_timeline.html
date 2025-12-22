@@ -202,19 +202,81 @@
 
     #loading {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      background: var(--background-color);
+    }
+
+    .loading-placeholder {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      opacity: 0.1;
+      filter: blur(8px);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      padding: 40px;
+      box-sizing: border-box;
+    }
+
+    .placeholder-line {
+      width: 100%;
+      height: 4px;
+      background: var(--line-color);
+      position: relative;
+    }
+
+    .placeholder-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--dot-normal);
+      position: absolute;
+      top: -5px;
+    }
+
+    #loading-text {
+      position: relative;
+      z-index: 201;
       font-size: 16px;
-      font-weight: 600;
-      color: var(--muted-text-color);
+      font-weight: 700;
+      color: var(--text-color);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px 24px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    :root.dark-mode #loading-text {
+      background: rgba(21, 24, 32, 0.9);
     }
   </style>
 </head>
 <body>
   <div class="chart-wrapper">
     <div id="chart-container">
-      <div id="loading">Loading training plan...</div>
+      <div id="loading">
+        <div class="loading-placeholder">
+          <div class="placeholder-line">
+            <div class="placeholder-dot" style="left: 10%"></div>
+            <div class="placeholder-dot" style="left: 30%; background: var(--dot-deload)"></div>
+            <div class="placeholder-dot" style="left: 50%"></div>
+            <div class="placeholder-dot" style="left: 70%; background: var(--dot-race); width: 20px; height: 20px; top: -8px"></div>
+            <div class="placeholder-dot" style="left: 90%"></div>
+          </div>
+        </div>
+        <div id="loading-text">Loading training plan...</div>
+      </div>
       <div id="chart"></div>
       <div class="tooltip" id="tooltip">
         <div class="week-label" id="tooltip-date-range">21 Dec - 28 Dec</div>
@@ -410,8 +472,9 @@
         .enter()
         .append("circle")
         .attr("class", d => {
+          const hasPrep = d.has_race_prep || (d.sessions && d.sessions.some(s => s.is_prep));
           if (d.has_primary_race || d.has_secondary_race) return 'dot dot-race';
-          if (d.is_deload && !d.has_race_prep) return 'dot dot-deload';
+          if (d.is_deload && !hasPrep) return 'dot dot-deload';
           return 'dot dot-normal';
         })
         .attr("cx", d => xScale(d.week_number))

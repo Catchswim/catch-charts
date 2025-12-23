@@ -303,16 +303,43 @@
     }
 
     async function fetchForecast(userId, token) {
+      // Direct REST query to Supabase table for near-instant loading
+      const baseUrl = "https://kftdzpugxfrhddsymmol.supabase.co/rest/v1/user_plan_forecast";
       const headers = new Headers({ 
+        "accept": "application/json",
+        "apikey": token, 
+        "Authorization": `Bearer ${token}`
+      });
+
+      try {
+        const url = `${baseUrl}?user_id=eq.${userId}&select=payload`;
+        const resp = await fetch(url, {
+          method: "GET",
+          headers
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.length > 0 && data[0].payload) {
+            console.log("Loaded forecast from cache table");
+            return data[0].payload;
+          }
+        }
+      } catch (e) {
+        console.warn("REST fetch failed, falling back to function:", e);
+      }
+
+      // Fallback to Edge Function if table query fails or is empty
+      const headersFunc = new Headers({ 
         "accept": "application/json",
         "content-type": "application/json"
       });
       if (token) {
-        headers.set("authorization", `Bearer ${token}`);
+        headersFunc.set("authorization", `Bearer ${token}`);
       }
       const resp = await fetch(functionUrl, {
         method: "POST",
-        headers,
+        headers: headersFunc,
         body: JSON.stringify({ userId })
       });
       if (!resp.ok) {

@@ -71,6 +71,18 @@
       width: 100%;
       line-height: 1.2;
       min-height: 1.2em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--color-threshold);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
     }
 
     #error-message {
@@ -187,11 +199,23 @@
       
       let currentX = 0;
 
-      // Set initial readout to first session or general title
+      function updateReadout(session) {
+        const color = getColor(session.session_type);
+        let name = session.session_type_name || "Training";
+        
+        // Custom readout for Race Day (type 8)
+        if (parseInt(session.session_type) === 8) {
+          const raceName = session.event_name || "Race Day";
+          const dist = session.target_distance || session.event_distance || 0;
+          name = `${raceName} (${dist}m)`;
+        }
+        
+        readout.html(`<span class="dot" style="background-color: ${color}"></span>${name}`);
+      }
+
+      // Set initial readout
       if (sessions.length > 0) {
-        readout
-          .text(sessions[0].session_type_name)
-          .style("color", getColor(sessions[0].session_type));
+        updateReadout(sessions[0]);
       }
 
       barGroup.selectAll("rect")
@@ -210,9 +234,7 @@
         .attr("height", barHeight)
         .attr("fill", d => getColor(d.session_type))
         .on("mouseover", (event, d) => {
-          readout
-            .text(d.session_type_name)
-            .style("color", getColor(d.session_type));
+          updateReadout(d);
         });
     }
 

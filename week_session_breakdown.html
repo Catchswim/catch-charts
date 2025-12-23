@@ -74,7 +74,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--color-threshold);
     }
 
     .dot {
@@ -210,7 +209,9 @@
           name = `${raceName} (${dist}m)`;
         }
         
-        readout.html(`<span class="dot" style="background-color: ${color}"></span>${name}`);
+        readout
+          .style("color", color)
+          .html(`<span class="dot" style="background-color: ${color}"></span>${name}`);
       }
 
       // Set initial readout

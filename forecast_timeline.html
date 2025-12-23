@@ -506,8 +506,14 @@
       overlay.on("mousemove touchmove", handleInteraction);
       overlay.on("click", handleInteraction);
 
-      // Initial focus
-      showFocus(weeks[0], xScale, yScale);
+      // Auto-scroll to start if first time loading
+      if (!window.hasScrolledToCurrent && weeks.length > 0) {
+        const firstX = xScale(weeks[0].week_number);
+        const container = document.getElementById("chart-container");
+        const cw = container.clientWidth;
+        container.scrollLeft = Math.max(0, firstX + margin.left - cw / 2);
+        window.hasScrolledToCurrent = true;
+      }
     }
 
     function formatDate(dateStr) {
@@ -617,12 +623,6 @@
         if (isSelected) return isBig ? 13 : 9;
         return isBig ? 10 : 7;
       });
-
-      // Auto-scroll to current week if first time showing
-      if (!window.hasScrolledToCurrent) {
-        container.scrollLeft = Math.max(0, x + margin.left - cw / 2);
-        window.hasScrolledToCurrent = true;
-      }
     }
 
     init();

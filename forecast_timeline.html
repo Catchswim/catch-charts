@@ -227,50 +227,34 @@
       position: absolute;
       top: 0;
       left: 0;
-      opacity: 0.3;
-      filter: blur(2px);
+      opacity: 0.15;
+      filter: blur(3px);
       pointer-events: none;
       display: flex;
       align-items: center;
-      padding: 0 40px;
+      justify-content: center;
+      padding: 0;
       box-sizing: border-box;
     }
 
-    .placeholder-line {
+    .placeholder-svg {
       width: 100%;
-      height: 8px; /* Increased from 4px */
-      background: var(--line-color);
-      position: relative;
-      opacity: 0.3;
-      border-radius: 4px;
-    }
-
-    .placeholder-dot {
-      width: 20px; /* Increased from 14px */
-      height: 20px;
-      border-radius: 50%;
-      background: var(--dot-normal);
-      position: absolute;
-      top: -6px;
-      opacity: 0.6;
+      height: 100px;
     }
 
     #loading-text {
       position: relative;
       z-index: 201;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--text-color);
-      background: rgba(255, 255, 255, 0.9);
-      padding: 12px 24px;
-      border-radius: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
+      opacity: 0.6;
     }
 
     :root.dark-mode #loading-text {
-      background: rgba(21, 24, 32, 0.9);
+      color: var(--text-color);
     }
   </style>
 </head>
@@ -279,15 +263,15 @@
     <div id="chart-container">
       <div id="loading">
         <div class="loading-placeholder">
-          <div class="placeholder-line">
-            <div class="placeholder-dot" style="left: 10%; top: 10px"></div>
-            <div class="placeholder-dot" style="left: 30%; top: -15px; background: var(--dot-deload)"></div>
-            <div class="placeholder-dot" style="left: 50%; top: 5px"></div>
-            <div class="placeholder-dot" style="left: 70%; top: -20px; background: var(--dot-race); width: 24px; height: 24px"></div>
-            <div class="placeholder-dot" style="left: 90%; top: -5px"></div>
-          </div>
+          <svg class="placeholder-svg" viewBox="0 0 400 100" preserveAspectRatio="none">
+            <path d="M0,80 Q50,20 100,70 T200,50 T300,80 T400,40" fill="none" stroke="var(--line-color)" stroke-width="4" />
+            <circle cx="50" cy="45" r="6" fill="var(--dot-normal)" />
+            <circle cx="150" cy="60" r="6" fill="var(--dot-deload)" />
+            <circle cx="250" cy="65" r="6" fill="var(--dot-normal)" />
+            <circle cx="350" cy="50" r="8" fill="var(--dot-race)" />
+          </svg>
         </div>
-        <div id="loading-text">Loading training plan...</div>
+        <div id="loading-text">Loading your plan...</div>
       </div>
       <div id="chart"></div>
       <div class="tooltip" id="tooltip">
@@ -565,7 +549,7 @@
           .attr("class", "info-row prep-row")
           .style("color", "#FFE9C3")
           .text("DELOAD");
-      } else {
+      } else if (!d.has_primary_race && !d.has_secondary_race) {
         // Normal building week (pink dot)
         extraInfo.append("div")
           .attr("class", "info-row prep-row")

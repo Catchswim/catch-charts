@@ -15,19 +15,19 @@
       --tooltip-text: #ffffff;
       
       /* Session Colors */
-      --color-technique: #000000;
+      --color-technique: #00897B;
       --color-threshold: #003333;
       --color-aerobic: #F2C94C;
-      --color-speed: #91BDCD;
+      --color-speed: #CFC4DB;
       --color-event: #E45F5D;
-      --color-prep: #2D9CDB;
+      --color-prep: #91BDCD;
     }
 
     :root.dark-mode {
       --background-color: transparent;
       --text-color: #ffffff;
       --muted-text-color: #91BDCD;
-      --color-technique: #ffffff; /* Reversed for dark mode visibility if needed, or keep black with border */
+      --color-technique: #00897B; 
     }
 
     body {
@@ -45,23 +45,19 @@
 
     #chart-container {
       width: 100%;
-      height: 40px; /* Slim height for the segmented bar */
+      height: 100%;
       position: relative;
       display: flex;
       align-items: center;
-      padding: 0 4px;
+      justify-content: center;
+      padding: 0; /* Removed padding to prevent overflow */
       box-sizing: border-box;
     }
 
     .session-segment {
-      height: 12px; /* Matching the thickness in your image */
+      height: 12px;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.2s;
-    }
-
-    .session-segment:hover {
-      opacity: 0.8;
-      transform: scaleY(1.2);
+      transition: opacity 0.2s;
     }
 
     /* Tooltip styling */
@@ -167,18 +163,35 @@
       const tooltip = d3.select("#tooltip");
       const totalDistance = sessions.reduce((sum, s) => sum + (s.target_distance || 0), 0);
       
+      const width = document.getElementById("chart-container").clientWidth;
+      const height = 12; // Bar thickness
+      const gap = 1; // Thinner gap for cleaner look
+      const availableWidth = width - (gap * (sessions.length - 1));
+
       const svg = container.append("svg")
-        .attr("width", "100%")
-        .attr("height", "100%")
+        .attr("width", width)
+        .attr("height", height)
         .style("overflow", "visible");
 
-      const width = document.getElementById("chart-container").clientWidth;
-      const gap = 2; // Tiny gap between segments like in your image
-      const availableWidth = width - (gap * (sessions.length - 1));
+      // Create a clip path to round only the ends of the whole bar
+      const clipId = "bar-clip-" + Math.floor(Math.random() * 1000000);
+      svg.append("defs")
+        .append("clipPath")
+        .attr("id", clipId)
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("rx", height / 2)
+        .attr("ry", height / 2);
+
+      const barGroup = svg.append("g")
+        .attr("clip-path", `url(#${clipId})`);
       
       let currentX = 0;
 
-      svg.selectAll("rect")
+      barGroup.selectAll("rect")
         .data(sessions)
         .enter()
         .append("rect")
@@ -189,11 +202,9 @@
           currentX += w + gap;
           return x;
         })
-        .attr("y", 14) // Center vertically in the 40px container
+        .attr("y", 0)
         .attr("width", d => (d.target_distance / totalDistance) * availableWidth)
-        .attr("height", 12)
-        .attr("rx", 6) // Rounded ends
-        .attr("ry", 6)
+        .attr("height", height)
         .attr("fill", d => getColor(d.session_type))
         .on("mouseover", (event, d) => {
           tooltip
@@ -203,7 +214,7 @@
         .on("mousemove", (event) => {
           tooltip
             .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 30) + "px");
+            .style("top", (event.pageY - 35) + "px");
         })
         .on("mouseout", () => {
           tooltip.style("display", "none");

@@ -297,43 +297,31 @@
     }
 
     async function fetchForecast(userId, token) {
-      // Direct REST query to Supabase table for near-instant loading
-      // We prioritize the table fetch to avoid the slow Edge Function recalculation
-      const baseUrl = "https://kftdzpugxfrhddsymmol.supabase.co/rest/v1/user_plan_forecast";
+      const functionUrl = "https://kftdzpugxfrhddsymmol.supabase.co/functions/v1/get-user-plan-forecast";
       const headers = new Headers({ 
         "accept": "application/json",
-        "apikey": token, // Using the token as apikey (standard in many Supabase client setups)
+        "content-type": "application/json",
         "Authorization": `Bearer ${token}`
       });
 
       try {
-        console.log("Attempting direct table fetch for userId:", userId);
-        const url = `${baseUrl}?user_id=eq.${userId}&select=payload`;
-        const resp = await fetch(url, {
-          method: "GET",
-          headers
+        console.log("Fetching forecast from get-user-plan-forecast...");
+        const resp = await fetch(functionUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ userId })
         });
 
         if (resp.ok) {
           const data = await resp.json();
-          if (data && data.length > 0 && data[0].payload) {
-            console.log("Successfully loaded forecast from user_plan_forecast table");
-            // Check if payload is a string (PostgREST sometimes returns JSONB as string depending on config)
-            const payload = typeof data[0].payload === 'string' ? JSON.parse(data[0].payload) : data[0].payload;
-            return payload;
-          }
-          console.warn("No forecast payload found in table for this user.");
+          return data.weeks ? data : (data.payload || data);
         } else {
-          const errorText = await resp.text();
-          console.error("REST fetch failed with status:", resp.status, errorText);
+          console.error("Function call failed:", resp.status);
         }
       } catch (e) {
-        console.error("REST fetch error:", e);
+        console.error("Fetch error:", e);
       }
 
-      // If we reach here, the table fetch failed or returned no data.
-      // We do NOT fall back to the slow function automatically as per user request to avoid slowness.
-      // But we can throw an error to show the "Error" state in the UI.
       throw new Error("No training plan found. Please generate it in the app first.");
     }
 

@@ -494,6 +494,7 @@
         .style("touch-action", "pan-x"); // Ensure mobile horizontal scrolling works over the chart
 
       function handleInteraction(event) {
+        // If it's a touch event, don't prevent default to allow scrolling
         const [mx] = d3.pointer(event);
         const invertedX = xScale.invert(mx);
         const week = weeks.reduce((prev, curr) => 
@@ -503,7 +504,7 @@
         if (week) showFocus(week, xScale, yScale);
       }
 
-      overlay.on("mousemove touchmove", handleInteraction);
+      overlay.on("pointermove pointerdown", handleInteraction);
       overlay.on("click", handleInteraction);
 
       // Auto-scroll to start if first time loading
@@ -518,8 +519,14 @@
 
     function formatDate(dateStr) {
       if (!dateStr) return "";
+      // Safer parsing for iOS/Safari: YYYY-MM-DD
+      const parts = dateStr.split("-");
+      if (parts.length === 3) {
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      }
       const date = new Date(dateStr);
-      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      return isNaN(date.getTime()) ? "" : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     }
 
     function showFocus(d, xScale, yScale) {
@@ -541,7 +548,7 @@
         if (raceName) {
           extraInfo.append("div")
             .attr("class", "info-row race-row")
-            .html(`🏁 ${raceName}: ${raceDist ? raceDist.toLocaleString() + 'm' : ''}`);
+            .html(`🏁 ${raceName.toUpperCase()}: ${raceDist ? raceDist.toLocaleString() + 'm' : ''}`);
         }
       }
 
@@ -549,9 +556,10 @@
       if (d.has_race_prep) {
         const prepSession = d.sessions.find(s => s.is_prep);
         if (prepSession) {
+          const typeName = (prepSession.session_type_name || "Prep").toUpperCase();
           extraInfo.append("div")
             .attr("class", "info-row prep-row")
-            .text(`${prepSession.session_type_name}: ${prepSession.target_distance.toLocaleString()}m`);
+            .text(`${typeName}: ${prepSession.target_distance.toLocaleString()}m`);
         }
       } else if (d.is_deload && !d.has_primary_race && !d.has_secondary_race) {
         extraInfo.append("div")

@@ -383,7 +383,7 @@
         }
 
         if (!data && userId && token) {
-          d3.select("#loading-text").text("Fetching forecast...");
+          d3.select("#loading-text").text("Loading your plan...");
           data = await fetchForecast(userId, token);
         }
 

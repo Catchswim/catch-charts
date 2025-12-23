@@ -212,9 +212,42 @@
             .text(d.session_type_name || "Training");
         })
         .on("mousemove", (event) => {
+          const containerNode = document.getElementById("chart-container");
+          const containerRect = containerNode.getBoundingClientRect();
+          const tooltipNode = tooltip.node();
+          
+          // Get mouse position relative to the container
+          const [relX, relY] = d3.pointer(event, containerNode);
+          
+          tooltip.style("display", "block"); // Ensure it's block to get dimensions
+          const tooltipRect = tooltipNode.getBoundingClientRect();
+          
+          let left = relX + 10;
+          let top = relY - 35;
+
+          // Check right boundary
+          if (left + tooltipRect.width > containerRect.width - 10) {
+            left = relX - tooltipRect.width - 10;
+          }
+
+          // Check left boundary
+          if (left < 10) {
+            left = 10;
+          }
+
+          // Check top boundary (if it goes above the container)
+          if (top < 10) {
+            top = relY + 20;
+          }
+
+          // Check bottom boundary
+          if (top + tooltipRect.height > containerRect.height - 10) {
+            top = relY - tooltipRect.height - 10;
+          }
+
           tooltip
-            .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 35) + "px");
+            .style("left", left + "px")
+            .style("top", top + "px");
         })
         .on("mouseout", () => {
           tooltip.style("display", "none");

@@ -417,10 +417,11 @@
     }
 
     function renderChart(weeks) {
-      const svg = chartContainer.append("svg")
+      const fullSvg = chartContainer.append("svg")
         .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
+        .attr("height", height + margin.top + margin.bottom);
+
+      const svg = fullSvg.append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
       const weekNumbers = weeks.map(d => d.week_number);
@@ -456,7 +457,7 @@
         .attr("transform", `translate(0,${height})`)
         .call(d3.axisBottom(xScale)
           .ticks(weeks.length)
-          .tickFormat("") // Removed x axis labels
+          .tickFormat("") 
         );
 
       // Focus Line
@@ -480,7 +481,7 @@
 
       // Add Gradient Definition
       const gradientId = "line-gradient-" + Math.floor(Math.random() * 1000000);
-      const defs = svg.append("defs");
+      const defs = fullSvg.append("defs");
       const gradient = defs.append("linearGradient")
         .attr("id", gradientId)
         .attr("x1", "0%").attr("y1", "0%")
@@ -522,31 +523,35 @@
         })
         .attr("cx", d => xScale(d.week_number))
         .attr("cy", d => yScale(d.weekly_total_distance))
-        .attr("r", d => d.has_primary_race || d.has_secondary_race ? 10 : 7);
+        .attr("r", d => d.has_primary_race || d.has_secondary_race ? 10 : 7)
+        .style("pointer-events", "none");
 
-      // Overlay
-      const overlay = svg.append("rect")
-        .attr("width", width)
-        .attr("height", height)
+      // Overlay covers the ENTIRE SVG area (including margins)
+      const overlay = fullSvg.append("rect")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
         .attr("fill", "transparent")
         .style("cursor", "crosshair")
         .style("pointer-events", "all")
-        .style("touch-action", "pan-x"); // Ensure mobile horizontal scrolling works over the chart
+        .style("touch-action", "pan-x");
 
       function handleInteraction(event) {
-        const [mx, my] = d3.pointer(event);
-        const invertedX = xScale.invert(mx);
+        const [mx, my] = d3.pointer(event, fullSvg.node());
+        // Adjust mouse X to the scale's coordinate system
+        const chartX = mx - margin.left;
+        const invertedX = xScale.invert(chartX);
+        
         const week = weeks.reduce((prev, curr) => 
           Math.abs(curr.week_number - invertedX) < Math.abs(prev.week_number - invertedX) ? curr : prev
         );
         
         if (week) {
-          const xPos = xScale(week.week_number);
-          const yPos = yScale(week.weekly_total_distance);
+          const xPos = xScale(week.week_number) + margin.left;
+          const yPos = yScale(week.weekly_total_distance) + margin.top;
           // Distance from click to the actual data point
           const dist = Math.sqrt(Math.pow(mx - xPos, 2) + Math.pow(my - yPos, 2));
           
-          if (dist < 50) {
+          if (dist < 40) {
             showFocus(week, xScale, yScale);
           } else {
             hideFocus();

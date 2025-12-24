@@ -519,14 +519,29 @@
 
     function formatDate(dateStr) {
       if (!dateStr) return "";
-      // Safer parsing for iOS/Safari: YYYY-MM-DD
-      const parts = dateStr.split("-");
-      if (parts.length === 3) {
-        const date = new Date(parts[0], parts[1] - 1, parts[2]);
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      
+      // If the string is already in a display format (e.g. "21 Dec"), just return it
+      if (typeof dateStr === 'string' && dateStr.length < 10 && dateStr.includes(' ')) {
+        return dateStr;
       }
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? "" : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+      const cleanStr = String(dateStr).split('T')[0];
+      const parts = cleanStr.split("-");
+      
+      let date;
+      if (parts.length === 3) {
+        // Manual parse: Year, Month (0-indexed), Day
+        date = new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        date = new Date(dateStr);
+      }
+
+      if (isNaN(date.getTime())) return dateStr;
+      
+      return date.toLocaleDateString('en-GB', { 
+        day: 'numeric', 
+        month: 'short' 
+      });
     }
 
     function showFocus(d, xScale, yScale) {

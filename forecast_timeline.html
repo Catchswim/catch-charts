@@ -463,6 +463,36 @@
         .y(d => yScale(d.weekly_total_distance))
         .curve(d3.curveMonotoneX);
 
+      // Area generator for the gradient fill
+      const areaGenerator = d3.area()
+        .x(d => xScale(d.week_number))
+        .y0(height)
+        .y1(d => yScale(d.weekly_total_distance))
+        .curve(d3.curveMonotoneX);
+
+      // Add Gradient Definition
+      const gradientId = "line-gradient-" + Math.floor(Math.random() * 1000000);
+      const defs = svg.append("defs");
+      const gradient = defs.append("linearGradient")
+        .attr("id", gradientId)
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "0%").attr("y2", "100%");
+
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", "var(--line-color)")
+        .attr("stop-opacity", 0.3);
+
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "var(--line-color)")
+        .attr("stop-opacity", 0);
+
+      svg.append("path")
+        .datum(weeks)
+        .attr("fill", `url(#${gradientId})`)
+        .attr("d", areaGenerator);
+
       svg.append("path")
         .datum(weeks)
         .attr("class", "line")
@@ -504,7 +534,6 @@
         if (week) showFocus(week, xScale, yScale);
       }
 
-      overlay.on("pointermove pointerdown", handleInteraction);
       overlay.on("click", handleInteraction);
 
       // Auto-scroll to start if first time loading

@@ -74,11 +74,13 @@
       -webkit-overflow-scrolling: touch;
       display: block;
       width: 100%;
+      touch-action: pan-x;
     }
 
     #chart {
       height: 100%;
       display: block;
+      touch-action: pan-x;
     }
 
     svg {
@@ -93,20 +95,24 @@
       font-size: 14px;
       font-weight: 600;
       font-family: inherit;
+      pointer-events: none;
     }
 
     .axis line, .axis path {
       stroke: none;
+      pointer-events: none;
     }
 
     .grid line {
       stroke: var(--border-color);
       stroke-opacity: 0.15;
       shape-rendering: crispEdges;
+      pointer-events: none;
     }
 
     .grid path {
       stroke-width: 0;
+      pointer-events: none;
     }
 
     .line {
@@ -116,6 +122,7 @@
       stroke-linejoin: round;
       stroke-linecap: round;
       opacity: 0.8;
+      pointer-events: none;
     }
 
     .dot {
@@ -123,6 +130,7 @@
       stroke-width: 2;
       cursor: pointer;
       transition: r 0.2s ease;
+      pointer-events: none;
     }
 
     .dot-normal {
@@ -491,12 +499,14 @@
       svg.append("path")
         .datum(weeks)
         .attr("fill", `url(#${gradientId})`)
-        .attr("d", areaGenerator);
+        .attr("d", areaGenerator)
+        .style("pointer-events", "none");
 
       svg.append("path")
         .datum(weeks)
         .attr("class", "line")
-        .attr("d", lineGenerator);
+        .attr("d", lineGenerator)
+        .style("pointer-events", "none");
 
       // Dots
       const dots = svg.selectAll(".dot")
@@ -524,14 +534,24 @@
         .style("touch-action", "pan-x"); // Ensure mobile horizontal scrolling works over the chart
 
       function handleInteraction(event) {
-        // If it's a touch event, don't prevent default to allow scrolling
-        const [mx] = d3.pointer(event);
+        const [mx, my] = d3.pointer(event);
         const invertedX = xScale.invert(mx);
         const week = weeks.reduce((prev, curr) => 
           Math.abs(curr.week_number - invertedX) < Math.abs(prev.week_number - invertedX) ? curr : prev
         );
         
-        if (week) showFocus(week, xScale, yScale);
+        if (week) {
+          const xPos = xScale(week.week_number);
+          const yPos = yScale(week.weekly_total_distance);
+          // Distance from click to the actual data point
+          const dist = Math.sqrt(Math.pow(mx - xPos, 2) + Math.pow(my - yPos, 2));
+          
+          if (dist < 50) {
+            showFocus(week, xScale, yScale);
+          } else {
+            hideFocus();
+          }
+        }
       }
 
       overlay.on("click", handleInteraction);
@@ -570,6 +590,15 @@
       return date.toLocaleDateString('en-GB', { 
         day: 'numeric', 
         month: 'short' 
+      });
+    }
+
+    function hideFocus() {
+      tooltip.style("display", "none");
+      d3.select(".focus-line").style("display", "none");
+      d3.selectAll(".dot").attr("r", dot => {
+        const isBig = dot.has_primary_race || dot.has_secondary_race || (dot.has_race_prep || (dot.sessions && dot.sessions.some(s => s.is_prep)));
+        return isBig ? 10 : 7;
       });
     }
 

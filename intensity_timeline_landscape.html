@@ -842,9 +842,11 @@
         .style("height", "100%");
 
       const clipId = `plot-clip-${Math.random().toString(36).slice(2)}`;
-      rootSvg
-        .append("defs")
-        .append("clipPath")
+      const hrGradientId = `hr-gradient-${Math.random().toString(36).slice(2)}`;
+      
+      const defs = rootSvg.append("defs");
+      
+      defs.append("clipPath")
         .attr("id", clipId)
         .attr("clipPathUnits", "userSpaceOnUse")
         .append("rect")
@@ -852,6 +854,21 @@
         .attr("y", 0)
         .attr("width", width)
         .attr("height", height);
+
+      const hrGradient = defs.append("linearGradient")
+        .attr("id", hrGradientId)
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "0%").attr("y2", "100%");
+
+      hrGradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", "#E45F5D")
+        .attr("stop-opacity", 0.25);
+
+      hrGradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "#E45F5D")
+        .attr("stop-opacity", 0);
 
       const svg = rootSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
       const plotGroup = rootSvg
@@ -915,22 +932,44 @@
         .selectAll(".pace-bar")
         .data(paceSegments)
         .enter()
-        .append("rect")
+        .append("path")
         .attr("class", "pace-bar")
-        .attr("x", (d) => {
-          const xStart = currentXScale(d.startTime);
-          return isNaN(xStart) ? 0 : xStart;
-        })
-        .attr("y", (d) => paceScale(d.rep_pace))
-        .attr("width", (d) => {
+        .attr("d", (d) => {
           const xStart = currentXScale(d.startTime);
           const xEnd = currentXScale(d.endTime);
-          const barWidth = xEnd - xStart;
-          return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
+          const barWidth = Math.max(xEnd - xStart, 1);
+          const barHeight = height - paceScale(d.rep_pace);
+          const y = paceScale(d.rep_pace);
+          const r = 6; // Corner radius
+          
+          if (isNaN(xStart) || barHeight <= 0) return "";
+          
+          // Top rounded corners only
+          const radius = Math.min(r, barWidth / 2, barHeight);
+          return `M${xStart},${y + barHeight} 
+                  L${xStart},${y + radius} 
+                  Q${xStart},${y} ${xStart + radius},${y} 
+                  L${xStart + barWidth - radius},${y} 
+                  Q${xEnd},${y} ${xEnd},${y + radius} 
+                  L${xEnd},${y + barHeight} Z`;
         })
-        .attr("height", (d) => height - paceScale(d.rep_pace))
         .attr("fill", "#91BDCD")
         .attr("opacity", 0.8);
+
+      const hrArea = d3.area()
+        .defined((d) => d.value != null)
+        .curve(d3.curveCatmullRom.alpha(0.35))
+        .x((d) => currentXScale(d.time))
+        .y0(height)
+        .y1((d) => hrScale(d.value));
+
+      const hrAreaPath = plotGroup
+        .append("path")
+        .datum(hrSeries)
+        .attr("class", "hr-area")
+        .attr("fill", `url(#${hrGradientId})`)
+        .attr("d", hrArea)
+        .style("pointer-events", "none");
 
       const hrPath = plotGroup
         .append("path")
@@ -1167,17 +1206,24 @@
           .attr("x", (d) => currentXScale(d.startTime))
           .attr("width", (d) => Math.max(currentXScale(d.endTime) - currentXScale(d.startTime), 1));
 
-        paceBars
-          .attr("x", (d) => {
-            const xStart = currentXScale(d.startTime);
-            return isNaN(xStart) ? 0 : xStart;
-          })
-          .attr("width", (d) => {
-            const xStart = currentXScale(d.startTime);
-            const xEnd = currentXScale(d.endTime);
-            const barWidth = xEnd - xStart;
-            return isNaN(barWidth) || barWidth <= 0 ? 1 : barWidth;
-          });
+        paceBars.attr("d", (d) => {
+          const xStart = currentXScale(d.startTime);
+          const xEnd = currentXScale(d.endTime);
+          const barWidth = Math.max(xEnd - xStart, 1);
+          const barHeight = height - paceScale(d.rep_pace);
+          const y = paceScale(d.rep_pace);
+          const r = 6;
+          
+          if (isNaN(xStart) || barHeight <= 0) return "";
+          
+          const radius = Math.min(r, barWidth / 2, barHeight);
+          return `M${xStart},${y + barHeight} 
+                  L${xStart},${y + radius} 
+                  Q${xStart},${y} ${xStart + radius},${y} 
+                  L${xStart + barWidth - radius},${y} 
+                  Q${xEnd},${y} ${xEnd},${y + radius} 
+                  L${xEnd},${y + barHeight} Z`;
+        });
 
         hrPath.attr(
           "d",
@@ -1188,6 +1234,8 @@
             .x((d) => currentXScale(d.time))
             .y((d) => hrScale(d.value))(hrSeries)
         );
+
+        d3.select(".hr-area").attr("d", hrArea.x((d) => currentXScale(d.time)));
 
         if (lastFocusTime != null) {
           handleFocus(null, lastFocusTime);
